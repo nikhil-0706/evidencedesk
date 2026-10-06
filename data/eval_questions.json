@@ -1,0 +1,326 @@
+[
+    {
+        "id": "Q01",
+        "split": "development",
+        "category": "direct",
+        "question": "What encryption protects customer data at rest?",
+        "expected_document_ids": [
+            "SEC-002"
+        ],
+        "expected_evidence": [
+            "Customer data is encrypted at rest using AES-256."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for AES-256 encryption at rest."
+    },
+    {
+        "id": "Q02",
+        "split": "development",
+        "category": "direct",
+        "question": "What protects data in transit?",
+        "expected_document_ids": [
+            "SEC-002"
+        ],
+        "expected_evidence": [
+            "Data in transit is protected using TLS 1.2 or later."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for TLS protection in transit."
+    },
+    {
+        "id": "Q03",
+        "split": "development",
+        "category": "direct",
+        "question": "Is MFA required to access production systems?",
+        "expected_document_ids": [
+            "SEC-001"
+        ],
+        "expected_evidence": [
+            "Employees must use multi-factor authentication (MFA) to access production systems."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for production MFA requirement."
+    },
+    {
+        "id": "Q04",
+        "split": "development",
+        "category": "direct",
+        "question": "How often are access permissions reviewed?",
+        "expected_document_ids": [
+            "SEC-001"
+        ],
+        "expected_evidence": [
+            "Access permissions are reviewed quarterly."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for quarterly permission review."
+    },
+    {
+        "id": "Q05",
+        "split": "development",
+        "category": "direct",
+        "question": "Who approves administrative access?",
+        "expected_document_ids": [
+            "SEC-001"
+        ],
+        "expected_evidence": [
+            "Administrative access requires manager approval."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for manager approval requirement."
+    },
+    {
+        "id": "Q06",
+        "split": "development",
+        "category": "direct",
+        "question": "How frequently are database backups created?",
+        "expected_document_ids": [
+            "SEC-003"
+        ],
+        "expected_evidence": [
+            "Database backups are created daily."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for daily database backup frequency."
+    },
+    {
+        "id": "Q07",
+        "split": "development",
+        "category": "paraphrased",
+        "question": "Do staff need a second authentication factor before entering production?",
+        "expected_document_ids": [
+            "SEC-001"
+        ],
+        "expected_evidence": [
+            "Employees must use multi-factor authentication (MFA) to access production systems."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Paraphrased question for MFA requirement."
+    },
+    {
+        "id": "Q08",
+        "split": "development",
+        "category": "paraphrased",
+        "question": "What safeguards information while it travels between systems?",
+        "expected_document_ids": [
+            "SEC-002"
+        ],
+        "expected_evidence": [
+            "Data in transit is protected using TLS 1.2 or later."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Paraphrased question for transit encryption."
+    },
+    {
+        "id": "Q09",
+        "split": "development",
+        "category": "paraphrased",
+        "question": "How regularly do you check that backups can be restored?",
+        "expected_document_ids": [
+            "SEC-003"
+        ],
+        "expected_evidence": [
+            "Restore procedures are tested quarterly."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Paraphrased question for quarterly restore testing."
+    },
+    {
+        "id": "Q10",
+        "split": "development",
+        "category": "unanswerable",
+        "question": "Is the company SOC 2 certified?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "abstain",
+        "notes": "No supporting source in corpus."
+    },
+    {
+        "id": "Q11",
+        "split": "development",
+        "category": "unanswerable",
+        "question": "Which cloud provider hosts production?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "abstain",
+        "notes": "No supporting source in corpus."
+    },
+    {
+        "id": "Q12",
+        "split": "development",
+        "category": "unanswerable",
+        "question": "In which country is customer data stored?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "abstain",
+        "notes": "No supporting source in corpus."
+    },
+    {
+        "id": "Q13",
+        "split": "development",
+        "category": "ambiguous",
+        "question": "What is your retention policy?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "ask_clarification",
+        "notes": "Question lacks scope (backup retention vs logs vs customer data)."
+    },
+    {
+        "id": "Q14",
+        "split": "development",
+        "category": "conflicting",
+        "question": "How long are database backups retained?",
+        "expected_document_ids": [
+            "SEC-003",
+            "SEC-005"
+        ],
+        "expected_evidence": [
+            "Backup retention is 30 days.",
+            "Database backup retention is 90 days."
+        ],
+        "expected_behavior": "flag_conflict",
+        "notes": "SEC-003 specifies 30 days; potential conflict with 90 days in SEC-005."
+    },
+    {
+        "id": "Q15",
+        "split": "development",
+        "category": "conflicting",
+        "question": "Are backups retained for 30 days or 90 days?",
+        "expected_document_ids": [
+            "SEC-003",
+            "SEC-005"
+        ],
+        "expected_evidence": [
+            "Backup retention is 30 days.",
+            "Database backup retention is 90 days."
+        ],
+        "expected_behavior": "flag_conflict",
+        "notes": "SEC-003 specifies 30 days; potential conflict with SEC-005."
+    },
+    {
+        "id": "Q16",
+        "split": "held_out",
+        "category": "direct",
+        "question": "Who triages security incidents?",
+        "expected_document_ids": [
+            "SEC-004"
+        ],
+        "expected_evidence": [
+            "Security incidents are triaged by the on-call engineer."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for incident triage role."
+    },
+    {
+        "id": "Q17",
+        "split": "held_out",
+        "category": "direct",
+        "question": "Who receives escalated security incidents?",
+        "expected_document_ids": [
+            "SEC-004"
+        ],
+        "expected_evidence": [
+            "Confirmed incidents are escalated to the security lead."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Direct lookup for incident escalation role."
+    },
+    {
+        "id": "Q18",
+        "split": "held_out",
+        "category": "direct",
+        "question": "What is the contractual customer notification deadline for security incidents?",
+        "expected_document_ids": [
+            "SEC-004"
+        ],
+        "expected_evidence": [
+            "This policy does not specify a contractual customer notification deadline."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Show the explicit statement that no deadline is specified in this policy. Do not invent a deadline or claim that no deadline exists elsewhere."
+    },
+    {
+        "id": "Q19",
+        "split": "held_out",
+        "category": "paraphrased",
+        "question": "Which role performs initial assessment of security events?",
+        "expected_document_ids": [
+            "SEC-004"
+        ],
+        "expected_evidence": [
+            "Security incidents are triaged by the on-call engineer."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Paraphrased question for incident triage."
+    },
+    {
+        "id": "Q20",
+        "split": "held_out",
+        "category": "paraphrased",
+        "question": "To whom are verified security incidents escalated?",
+        "expected_document_ids": [
+            "SEC-004"
+        ],
+        "expected_evidence": [
+            "Confirmed incidents are escalated to the security lead."
+        ],
+        "expected_behavior": "show_evidence",
+        "notes": "Paraphrased question for incident escalation."
+    },
+    {
+        "id": "Q21",
+        "split": "held_out",
+        "category": "unanswerable",
+        "question": "What is your SLA for resolving high-severity security incidents?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "abstain",
+        "notes": "No supporting source for resolution SLA."
+    },
+    {
+        "id": "Q22",
+        "split": "held_out",
+        "category": "unanswerable",
+        "question": "How frequently are incident response tabletop exercises conducted?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "abstain",
+        "notes": "No supporting source for drill frequency."
+    },
+    {
+        "id": "Q23",
+        "split": "held_out",
+        "category": "ambiguous",
+        "question": "How quickly do you respond to incidents?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "ask_clarification",
+        "notes": "Clarify whether response means initial triage, escalation, customer notification, or resolution. No response times are documented."
+    },
+    {
+        "id": "Q24",
+        "split": "held_out",
+        "category": "unanswerable",
+        "question": "Are security incidents escalated immediately or within 24 hours?",
+        "expected_document_ids": [],
+        "expected_evidence": [],
+        "expected_behavior": "abstain",
+        "notes": "SEC-004 identifies the escalation recipient but gives no escalation deadline. Neither proposed timing is supported."
+    },
+    {
+        "id": "Q25",
+        "split": "held_out",
+        "category": "conflicting",
+        "question": "What single database backup retention period should I put in the questionnaire?",
+        "expected_document_ids": [
+            "SEC-003",
+            "SEC-005"
+        ],
+        "expected_evidence": [
+            "Backup retention is 30 days.",
+            "Database backup retention is 90 days."
+        ],
+        "expected_behavior": "flag_conflict",
+        "notes": "Both policies are treated as applicable, with no precedence rule. Flag the disagreement instead of choosing one duration."
+    }
+]
