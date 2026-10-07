@@ -1,0 +1,34 @@
+{
+  "day": "19.5",
+  "date": "2026-10-08",
+  "feature": "Real PDF Ingestion, Structure-Aware Chunking & Realistic Corpus Validation",
+  "summary": {
+    "total_tests": 18,
+    "passed": 18,
+    "failed": 0,
+    "ml_logic_changed": false,
+    "slm_reasoning_frozen": true,
+    "synthetic_benchmark_preserved": true,
+    "pdf_corpus_validation": "Benchmark B (Acme Security Policy PDF)"
+  },
+  "test_matrix": [
+    { "test_id": 1, "name": "PDF loaded successfully", "result": "PASS", "description": "Loaded data/acme_security_policy.pdf" },
+    { "test_id": 2, "name": "Text extraction succeeds", "result": "PASS", "description": "Extracted text page-by-page using PyMuPDF" },
+    { "test_id": 3, "name": "Multiple chunks generated", "result": "PASS", "description": "Structure-aware chunker generated 12 section-level policy chunks" },
+    { "test_id": 4, "name": "Chunks preserve page info", "result": "PASS", "description": "Every chunk contains 1-based page integer metadata" },
+    { "test_id": 5, "name": "Chunks preserve section info", "result": "PASS", "description": "Section header titles preserved per chunk" },
+    { "test_id": 6, "name": "Chunk IDs are deterministic", "result": "PASS", "description": "Stable SHA-256 hash IDs across multiple ingestion runs" },
+    { "test_id": 7, "name": "Every chunk has workspace_id", "result": "PASS", "description": "workspace_id (ws_acme_corp) tagged on all chunks" },
+    { "test_id": 8, "name": "Every chunk has document_id", "result": "PASS", "description": "document_id (SEC-REAL-001) present on all chunks" },
+    { "test_id": 9, "name": "Every chunk has version", "result": "PASS", "description": "version metadata (2026-01) preserved" },
+    { "test_id": 10, "name": "Every chunk has excerpt", "result": "PASS", "description": "Clean non-empty paragraph/clause excerpt text" },
+    { "test_id": 11, "name": "BM25 retrieves relevant PDF evidence", "result": "PASS", "description": "BM25Okapi successfully retrieves PDF policy chunks" },
+    { "test_id": 12, "name": "Dense retrieval retrieves relevant PDF evidence", "result": "PASS", "description": "Qdrant all-MiniLM-L6-v2 vector search succeeds on PDF chunks" },
+    { "test_id": 13, "name": "RRF receives BM25 + dense candidates", "result": "PASS", "description": "RRF k=60 fusion merges PDF BM25 and dense candidate sets" },
+    { "test_id": 14, "name": "Cross-Encoder reranking works on PDF chunks", "result": "PASS", "description": "BAAI/bge-reranker-large assigns reranker scores to PDF chunks" },
+    { "test_id": 15, "name": "SLM receives only final PDF evidence", "result": "PASS", "description": "SLM receives Top-5 PDF chunks and generates structured JSON" },
+    { "test_id": 16, "name": "Review payload displays PDF provenance", "result": "PASS", "description": "Review API payload retains page, section, source_type metadata" },
+    { "test_id": 17, "name": "Page & section metadata survives pipeline", "result": "PASS", "description": "Full provenance preserved end-to-end to human review" },
+    { "test_id": 18, "name": "Workspace isolation works on PDF corpus", "result": "PASS", "description": "Acme PDF queries exclude Globex evidence" }
+  ]
+}
