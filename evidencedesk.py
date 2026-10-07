@@ -17,14 +17,16 @@ from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer, util
 import ollama
 from rank_bm25 import BM25Okapi
+from qdrant_client import QdrantClient, models
+import uuid
 
 DOCUMENTS = [
-    {"id": "SEC-001", "title": "Access control policy", "version": "2026-01", "text": "Employees must use multi-factor authentication (MFA) to access production systems. Access permissions are reviewed quarterly. Administrative access requires manager approval."},
-    {"id": "SEC-002", "title": "Encryption policy", "version": "2026-01", "text": "Customer data is encrypted at rest using AES-256. Data in transit is protected using TLS 1.2 or later. Encryption keys are managed in a dedicated key management service."},
-    {"id": "SEC-003", "title": "Backup policy", "version": "2026-01", "text": "Database backups are created daily. Backup retention is 30 days. Restore procedures are tested quarterly."},
-    {"id": "SEC-004", "title": "Incident response policy", "version": "2026-01", "text": "Security incidents are triaged by the on-call engineer. Confirmed incidents are escalated to the security lead. This policy does not specify a contractual customer notification deadline."},
-    {"id": "SEC-005", "title": "Backup retention exception", "version": "2026-01",  "text": "Database backup retention is 90 days." },
-       
+    {"id": "SEC-001", "title": "Access control policy", "version": "2026-01", "text": "Employees must use multi-factor authentication (MFA) to access production systems. Access permissions are reviewed quarterly. Administrative access requires manager approval.", "workspace_id": "ws_acme_corp"},
+    {"id": "SEC-002", "title": "Encryption policy", "version": "2026-01", "text": "Customer data is encrypted at rest using AES-256. Data in transit is protected using TLS 1.2 or later. Encryption keys are managed in a dedicated key management service.", "workspace_id": "ws_acme_corp"},
+    {"id": "SEC-003", "title": "Backup policy", "version": "2026-01", "text": "Database backups are created daily. Backup retention is 30 days. Restore procedures are tested quarterly.", "workspace_id": "ws_acme_corp"},
+    {"id": "SEC-004", "title": "Incident response policy", "version": "2026-01", "text": "Security incidents are triaged by the on-call engineer. Confirmed incidents are escalated to the security lead. This policy does not specify a contractual customer notification deadline.", "workspace_id": "ws_acme_corp"},
+    {"id": "SEC-005", "title": "Backup retention exception", "version": "2026-01",  "text": "Database backup retention is 90 days.", "workspace_id": "ws_acme_corp"},
+    {"id": "SEC-G001", "title": "Globex Production Policy", "version": "2026-01", "text": "Production infrastructure is hosted on ExampleCloud.", "workspace_id": "ws_globex_corp"}
 ]
 # Development fixtures, not a held-out benchmark or evidence of general accuracy.
 CASES = [
@@ -49,45 +51,82 @@ for doc in DOCUMENTS:
     for idx, sentence in enumerate(sentences, start=1):
         PASSAGES.append({
             "chunk_id": f"chk_{doc['id'].lower().replace('-', '')}_{idx:03d}",
-            "workspace_id": "ws_acme_corp",
+            "workspace_id": doc.get("workspace_id", "ws_acme_corp"),
             "document_id": doc["id"],
             "title": doc["title"],
             "version": doc["version"],
             "excerpt": sentence.strip()
         })
 
-print("Encoding policy passages...")
-passage_texts = [p["excerpt"] for p in PASSAGES]
-passage_embeddings = embed_model.encode(passage_texts, convert_to_tensor=True)
+print("Initializing Qdrant and indexing policy passages...")
+qdrant = QdrantClient(path="qdrant_db")
+
+if not qdrant.collection_exists("evidencedesk"):
+    qdrant.create_collection(
+        collection_name="evidencedesk",
+        vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE),
+    )
+
+points = []
+for passage in PASSAGES:
+    vector = embed_model.encode(passage["excerpt"]).tolist()
+    point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, passage["chunk_id"]))
+    points.append(
+        models.PointStruct(
+            id=point_id,
+            vector=vector,
+            payload=passage
+        )
+    )
+
+qdrant.upsert(
+    collection_name="evidencedesk",
+    points=points
+)
 
 def tokens(text):
     return [word for word in re.findall(r"[a-z0-9]+", text.lower()) if word not in STOP]
 
+passage_texts = [p["excerpt"] for p in PASSAGES]
 tokenized_passages = [tokens(p) for p in passage_texts]
 bm25_model = BM25Okapi(tokenized_passages)
 
-def retrieve_by_bm25(question, top_k=20):
+def retrieve_by_bm25(question, workspace_id, top_k=20):
     query_tokens = tokens(question)
     scores = bm25_model.get_scores(query_tokens)
     ranked = []
     for i, score in enumerate(scores):
         if score > 0:
-            passage = PASSAGES[i].copy()
-            passage["bm25_score"] = round(float(score), 4)
-            ranked.append(passage)
+            passage = PASSAGES[i]
+            if passage["workspace_id"] == workspace_id:
+                p = passage.copy()
+                p["bm25_score"] = round(float(score), 4)
+                ranked.append(p)
     return sorted(ranked, key=lambda x: x["bm25_score"], reverse=True)[:top_k]
 
-def retrieve_by_embedding(question, top_k=20):
-    query_embedding = embed_model.encode(question, convert_to_tensor=True)
-    scores = util.cos_sim(query_embedding, passage_embeddings)[0]
+def retrieve_by_embedding(question, workspace_id, top_k=20):
+    query_vector = embed_model.encode(question).tolist()
+    search_result = qdrant.query_points(
+        collection_name="evidencedesk",
+        query=query_vector,
+        query_filter=models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="workspace_id",
+                    match=models.MatchValue(value=workspace_id),
+                )
+            ]
+        ),
+        limit=top_k
+    )
     
     ranked = []
-    for i, score in enumerate(scores):
-        passage = PASSAGES[i].copy()
-        passage["similarity_score"] = round(float(score), 4)
+    for hit in search_result.points:
+        passage = hit.payload.copy()
+        passage["similarity_score"] = round(float(hit.score), 4)
         ranked.append(passage)
         
-    return sorted(ranked, key=lambda x: x["similarity_score"], reverse=True)[:top_k]
+    return ranked
 
 def rrf_fuse(bm25_results, embedding_results, k=60, top_k=10):
     rrf_scores = {}
@@ -179,11 +218,14 @@ Retrieved Evidence:
 class ReviewRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1500)
     method: str = Field(default="hybrid")
+    workspace_id: str = Field(default="ws_acme_corp")
 
-def retrieve(question):
+def retrieve(question, workspace_id):
     query = set(tokens(question))
     ranked = []
     for passage in PASSAGES:
+        if passage["workspace_id"] != workspace_id:
+            continue
         words = Counter(tokens(passage["excerpt"]))
         matches = query.intersection(words)
         score = len(matches) / max(len(query), 1)
@@ -193,23 +235,23 @@ def retrieve(question):
             ranked.append(p)
     return sorted(ranked, key=lambda item: item["lexical_score"], reverse=True)[:3]
 
-def review(question, method="hybrid"):
+def review(question, method="hybrid", workspace_id="ws_acme_corp"):
     if method == "hybrid":
-        bm25_results = retrieve_by_bm25(question, top_k=20)
-        emb_results = retrieve_by_embedding(question, top_k=20)
+        bm25_results = retrieve_by_bm25(question, workspace_id, top_k=20)
+        emb_results = retrieve_by_embedding(question, workspace_id, top_k=20)
         evidence = rrf_fuse(bm25_results, emb_results, k=60, top_k=10)
         llm_analysis = analyze_evidence(question, evidence)
         mode = "hybrid_rrf_reasoning"
     elif method == "bm25":
-        evidence = retrieve_by_bm25(question, top_k=3)
+        evidence = retrieve_by_bm25(question, workspace_id, top_k=3)
         llm_analysis = analyze_evidence(question, evidence)
         mode = "bm25_reasoning"
     elif method == "embedding":
-        evidence = retrieve_by_embedding(question, top_k=3)
+        evidence = retrieve_by_embedding(question, workspace_id, top_k=3)
         llm_analysis = analyze_evidence(question, evidence)
         mode = "embedding_with_reasoning"
     else:
-        evidence = retrieve(question)
+        evidence = retrieve(question, workspace_id)
         sufficient = bool(evidence and evidence[0]["lexical_score"] >= THRESHOLD)
         mode = "deterministic_lexical_baseline"
 
@@ -255,7 +297,7 @@ def documents():
 def review_endpoint(body: ReviewRequest):
     if len(body.question.strip()) < 3:
         raise HTTPException(status_code=422, detail="Enter at least three non-whitespace characters.")
-    return review(body.question.strip(), body.method)
+    return review(body.question.strip(), body.method, body.workspace_id)
 
 @app.get("/evaluate")
 def evaluation_endpoint():

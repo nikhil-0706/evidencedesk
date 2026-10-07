@@ -4,7 +4,7 @@ An evidence-backed security questionnaire assistant with retrieval evaluation an
 
 **Problem:** Help reviewers find reliable evidence for security questionnaires without treating matching text as proof.
 
-**Current implementation:** FastAPI, synthetic security policies, lexical retrieval baseline, BM25 retrieval, embedding retrieval, hybrid BM25 + embedding retrieval using RRF (primary), constrained LLM reasoning layer (Ollama) to classify evidence, retrieval evaluation, and human review interface.
+**Current implementation:** FastAPI, synthetic security policies, lexical retrieval baseline, BM25 retrieval, embedding retrieval, hybrid BM25 + embedding retrieval using RRF (primary), Qdrant vector store, evidence provenance, workspace-aware retrieval isolation, constrained LLM reasoning layer (Ollama) to classify evidence, retrieval evaluation, and human review interface.
 
 **Evaluation:** 25 labeled questions covering direct, paraphrased, unanswerable, ambiguous, and conflicting cases, with expected evidence and behavior recorded for each.
 
