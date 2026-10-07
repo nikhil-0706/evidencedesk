@@ -20,7 +20,7 @@ def score_retrieval(result, case):
         reasoning_match = True
     elif expected_behavior == "ask_clarification" and status == "AMBIGUOUS":
         reasoning_match = True
-    elif expected_behavior == "flag_conflict" and status == "CONFLICTING_EVIDENCE":
+    elif expected_behavior == "flag_conflict" and status == "CONFLICTING":
         reasoning_match = True
         
     # Check retrieval evidence
@@ -54,7 +54,7 @@ def main():
     results = []
     
     for case in held_out_cases:
-        res = review(case["question"], method="embedding")
+        res = review(case["question"], method="hybrid")
         score, note = score_retrieval(res, case)
             
         results.append({

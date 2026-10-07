@@ -3,9 +3,9 @@ from evidencedesk import rrf_fuse
 
 class TestRRF(unittest.TestCase):
     def setUp(self):
-        self.doc_a = {"document_id": "A", "excerpt": "text A", "version": "1", "title": "A title"}
-        self.doc_b = {"document_id": "B", "excerpt": "text B", "version": "1", "title": "B title"}
-        self.doc_c = {"document_id": "C", "excerpt": "text C", "version": "1", "title": "C title"}
+        self.doc_a = {"chunk_id": "chk_A", "document_id": "A", "excerpt": "text A", "version": "1", "title": "A title"}
+        self.doc_b = {"chunk_id": "chk_B", "document_id": "B", "excerpt": "text B", "version": "1", "title": "B title"}
+        self.doc_c = {"chunk_id": "chk_C", "document_id": "C", "excerpt": "text C", "version": "1", "title": "C title"}
 
     def test_rrf_merges_highly_ranked_documents(self):
         bm25 = [self.doc_a, self.doc_b, self.doc_c]

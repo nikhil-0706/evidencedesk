@@ -11,7 +11,7 @@ def check_metadata(passage):
     assert passage["chunk_id"].startswith("chk_"), "Wrong chunk_id format"
 
 def test_lexical_preserves_metadata():
-    results = retrieve("encryption")
+    results = retrieve("encryption", workspace_id="ws_acme_corp")
     assert len(results) > 0
     for r in results:
         check_metadata(r)
@@ -19,7 +19,7 @@ def test_lexical_preserves_metadata():
     print("test_lexical_preserves_metadata passed")
 
 def test_bm25_preserves_metadata():
-    results = retrieve_by_bm25("encryption", top_k=3)
+    results = retrieve_by_bm25("encryption", workspace_id="ws_acme_corp", top_k=3)
     assert len(results) > 0
     for r in results:
         check_metadata(r)
@@ -27,7 +27,7 @@ def test_bm25_preserves_metadata():
     print("test_bm25_preserves_metadata passed")
 
 def test_embedding_preserves_metadata():
-    results = retrieve_by_embedding("encryption", top_k=3)
+    results = retrieve_by_embedding("encryption", workspace_id="ws_acme_corp", top_k=3)
     assert len(results) > 0
     for r in results:
         check_metadata(r)
@@ -35,8 +35,8 @@ def test_embedding_preserves_metadata():
     print("test_embedding_preserves_metadata passed")
 
 def test_hybrid_preserves_metadata():
-    bm25 = retrieve_by_bm25("encryption", top_k=5)
-    emb = retrieve_by_embedding("encryption", top_k=5)
+    bm25 = retrieve_by_bm25("encryption", workspace_id="ws_acme_corp", top_k=5)
+    emb = retrieve_by_embedding("encryption", workspace_id="ws_acme_corp", top_k=5)
     fused = rrf_fuse(bm25, emb, top_k=5)
     assert len(fused) > 0
     for r in fused:
@@ -45,8 +45,8 @@ def test_hybrid_preserves_metadata():
     print("test_hybrid_preserves_metadata passed")
 
 def test_rrf_no_duplicates():
-    bm25 = retrieve_by_bm25("encryption", top_k=5)
-    emb = retrieve_by_embedding("encryption", top_k=5)
+    bm25 = retrieve_by_bm25("encryption", workspace_id="ws_acme_corp", top_k=5)
+    emb = retrieve_by_embedding("encryption", workspace_id="ws_acme_corp", top_k=5)
     fused = rrf_fuse(bm25, emb, top_k=10)
     
     chunk_ids = [r["chunk_id"] for r in fused]
@@ -54,23 +54,23 @@ def test_rrf_no_duplicates():
     print("test_rrf_no_duplicates passed")
 
 def test_rrf_version_survives():
-    bm25 = retrieve_by_bm25("encryption", top_k=2)
-    emb = retrieve_by_embedding("encryption", top_k=2)
+    bm25 = retrieve_by_bm25("encryption", workspace_id="ws_acme_corp", top_k=2)
+    emb = retrieve_by_embedding("encryption", workspace_id="ws_acme_corp", top_k=2)
     fused = rrf_fuse(bm25, emb, top_k=2)
     assert fused[0]["version"] == "2026-01"
     print("test_rrf_version_survives passed")
 
 def test_rrf_workspace_survives():
-    bm25 = retrieve_by_bm25("encryption", top_k=2)
-    emb = retrieve_by_embedding("encryption", top_k=2)
+    bm25 = retrieve_by_bm25("encryption", workspace_id="ws_acme_corp", top_k=2)
+    emb = retrieve_by_embedding("encryption", workspace_id="ws_acme_corp", top_k=2)
     fused = rrf_fuse(bm25, emb, top_k=2)
     assert fused[0]["workspace_id"] == "ws_acme_corp"
     print("test_rrf_workspace_survives passed")
 
 def test_chunk_identity_stable():
-    lex = retrieve("customer data at rest")
-    bm = retrieve_by_bm25("customer data at rest")
-    emb = retrieve_by_embedding("customer data at rest")
+    lex = retrieve("customer data at rest", workspace_id="ws_acme_corp")
+    bm = retrieve_by_bm25("customer data at rest", workspace_id="ws_acme_corp")
+    emb = retrieve_by_embedding("customer data at rest", workspace_id="ws_acme_corp")
     
     lex_id = next(r["chunk_id"] for r in lex if "AES-256" in r["excerpt"])
     bm_id = next(r["chunk_id"] for r in bm if "AES-256" in r["excerpt"])

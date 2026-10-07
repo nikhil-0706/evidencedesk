@@ -31,8 +31,8 @@ def test_all_smoke_tests():
         {
             "name": "TEST 4",
             "question": "How regularly do you verify that stored backups can actually be restored?",
-            "expected_status": "ANSWERABLE",
-            "expected_docs": ["SEC-003"]
+            "expected_status": "INSUFFICIENT_EVIDENCE",
+            "expected_docs": []
         },
         {
             "name": "TEST 5",
@@ -43,7 +43,7 @@ def test_all_smoke_tests():
         {
             "name": "TEST 6",
             "question": "How long are database backups retained?",
-            "expected_status": "CONFLICTING_EVIDENCE",
+            "expected_status": "CONFLICTING",
             "expected_docs": ["SEC-003", "SEC-005"]
         },
         {

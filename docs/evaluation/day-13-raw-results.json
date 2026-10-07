@@ -1,0 +1,3374 @@
+[
+  {
+    "id": "Q01",
+    "category": "direct",
+    "question": "What encryption protects customer data at rest?",
+    "expected_docs": [
+      "SEC-002"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 5.0088
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "bm25_score": 2.032
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.3908
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.7301
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.4792
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.4385
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 5.0088,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "bm25_score": 2.032,
+        "rrf_score": 0.032258
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.031746
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.030118
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.2714,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.1866,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.1644,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.1607,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1451,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.1084,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 5.0088,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.9752
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.031746,
+        "reranker_score": 0.0846
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.1607,
+        "rrf_score": 0.014925,
+        "reranker_score": 0.0055
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.1866,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0029
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.2714,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0026
+      }
+    ]
+  },
+  {
+    "id": "Q02",
+    "category": "direct",
+    "question": "What protects data in transit?",
+    "expected_docs": [
+      "SEC-002"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 3.2895
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 1.4884
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.6401
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.3605
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2966
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 3.2895,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 1.4884,
+        "rrf_score": 0.032258
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2966,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.2851,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.2356,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.1937,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.1789,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.172,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1461,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.1205,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 3.2895,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.7866
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 1.4884,
+        "rrf_score": 0.032258,
+        "reranker_score": 0.0086
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.1205,
+        "rrf_score": 0.014286,
+        "reranker_score": 0.0069
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.2356,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0011
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2966,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.0009
+      }
+    ]
+  },
+  {
+    "id": "Q03",
+    "category": "direct",
+    "question": "Is MFA required to access production systems?",
+    "expected_docs": [
+      "SEC-001"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 5.4952
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 1.3936
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 1.2798
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.8138
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.4446
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2781
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 5.4952,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 1.3936,
+        "rrf_score": 0.032002
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 1.2798,
+        "rrf_score": 0.032002
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.276,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.2399,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.2108,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.2024,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.1999,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.182,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1419,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 5.4952,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.9963
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 1.2798,
+        "rrf_score": 0.032002,
+        "reranker_score": 0.037
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 1.3936,
+        "rrf_score": 0.032002,
+        "reranker_score": 0.0056
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1419,
+        "rrf_score": 0.014286,
+        "reranker_score": 0.0052
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.2399,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.005
+      }
+    ]
+  },
+  {
+    "id": "Q04",
+    "category": "direct",
+    "question": "How often are access permissions reviewed?",
+    "expected_docs": [
+      "SEC-001"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 6.5416
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 1.2798
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 0.9087
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.7808
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.4061
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.2487
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 6.5416,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 1.2798,
+        "rrf_score": 0.032258
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 0.9087,
+        "rrf_score": 0.030159
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.2487,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.2135,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.198,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.1768,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.1672,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.1653,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1568,
+        "rrf_score": 0.014493
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 6.5416,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.997
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.2135,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0288
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.2487,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.0263
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.1672,
+        "rrf_score": 0.014925,
+        "reranker_score": 0.004
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.1768,
+        "rrf_score": 0.015152,
+        "reranker_score": 0.0015
+      }
+    ]
+  },
+  {
+    "id": "Q05",
+    "category": "direct",
+    "question": "Who approves administrative access?",
+    "expected_docs": [
+      "SEC-001"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 3.6436
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 1.3936
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 0.9087
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.7621
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.5475
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.3088
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 3.6436,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 1.3936,
+        "rrf_score": 0.032258
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 0.9087,
+        "rrf_score": 0.031746
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.2285,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.193,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1566,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.1537,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.1044,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.1001,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.0943,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "bm25_score": 3.6436,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.8415
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "bm25_score": 1.3936,
+        "rrf_score": 0.032258,
+        "reranker_score": 0.0023
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 0.9087,
+        "rrf_score": 0.031746,
+        "reranker_score": 0.0001
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.2285,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0001
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.193,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0001
+      }
+    ]
+  },
+  {
+    "id": "Q06",
+    "category": "direct",
+    "question": "How frequently are database backups created?",
+    "expected_docs": [
+      "SEC-003"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 7.0335
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.8097
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.5459
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.4971
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 7.0335,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315,
+        "rrf_score": 0.032258
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.4971,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.2839,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1727,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.0751,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.0719,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.0564,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.0421,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.0363,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 7.0335,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.9836
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.2839,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.7947
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315,
+        "rrf_score": 0.032258,
+        "reranker_score": 0.1226
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.4971,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.0424
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1727,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0321
+      }
+    ]
+  },
+  {
+    "id": "Q07",
+    "category": "paraphrased",
+    "question": "Do staff need a second authentication factor before entering production?",
+    "expected_docs": [
+      "SEC-001"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found exact expected passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 4.5865
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.6802
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.3642
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2731
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 4.5865,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.3642,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2731,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.246,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.2094,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.1943,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1903,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1758,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.1702,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.1701,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 4.5865,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.8765
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.3642,
+        "rrf_score": 0.016129,
+        "reranker_score": 0.0022
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2731,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.0007
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.1943,
+        "rrf_score": 0.015152,
+        "reranker_score": 0.0002
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1758,
+        "rrf_score": 0.014706,
+        "reranker_score": 0.0002
+      }
+    ]
+  },
+  {
+    "id": "Q08",
+    "category": "paraphrased",
+    "question": "What safeguards information while it travels between systems?",
+    "expected_docs": [
+      "SEC-002"
+    ],
+    "bm25": "FAIL",
+    "bm25_note": "Failed to retrieve expected doc.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 1.6785
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.3809
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.3429
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2899
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 1.6785,
+        "rrf_score": 0.031778
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.3809,
+        "rrf_score": 0.016393
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.3429,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2899,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.2633,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.2046,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.2041,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1529,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.143,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.0461,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.3429,
+        "rrf_score": 0.016129,
+        "reranker_score": 0.999
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.2046,
+        "rrf_score": 0.015152,
+        "reranker_score": 0.0202
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.0461,
+        "rrf_score": 0.014286,
+        "reranker_score": 0.0156
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 1.6785,
+        "rrf_score": 0.031778,
+        "reranker_score": 0.0085
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.143,
+        "rrf_score": 0.014493,
+        "reranker_score": 0.0023
+      }
+    ]
+  },
+  {
+    "id": "Q09",
+    "category": "paraphrased",
+    "question": "How regularly do you check that backups can be restored?",
+    "expected_docs": [
+      "SEC-003"
+    ],
+    "bm25": "PARTIAL",
+    "bm25_note": "Found correct document but wrong passage.",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 2.574
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found exact expected passage.",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.6185
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.6125
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.5586
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found exact expected passage.",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 2.574,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.6125,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.5586,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.5486,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2484,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1419,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.0913,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.0904,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.0796,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.0716,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found exact expected passage.",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.5586,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.958
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.6125,
+        "rrf_score": 0.016129,
+        "reranker_score": 0.1184
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 2.574,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.0291
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.5486,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0228
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2484,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0126
+      }
+    ]
+  },
+  {
+    "id": "Q10",
+    "category": "unanswerable",
+    "question": "Is the company SOC 2 certified?",
+    "expected_docs": [],
+    "bm25": "PASS",
+    "bm25_note": "No expected docs to retrieve for abstain",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.8987
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "No expected docs to retrieve for abstain",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.2486
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.2172
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2078
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "No expected docs to retrieve for abstain",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.8987,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.2172,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2078,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.2002,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.1937,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.1868,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.14,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.1353,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1343,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.1012,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "No expected docs to retrieve for abstain",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.1937,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0604
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.1353,
+        "rrf_score": 0.014706,
+        "reranker_score": 0.003
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1343,
+        "rrf_score": 0.014493,
+        "reranker_score": 0.0013
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.1868,
+        "rrf_score": 0.015152,
+        "reranker_score": 0.0006
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.8987,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.0003
+      }
+    ]
+  },
+  {
+    "id": "Q11",
+    "category": "unanswerable",
+    "question": "Which cloud provider hosts production?",
+    "expected_docs": [],
+    "bm25": "PASS",
+    "bm25_note": "No expected docs to retrieve for abstain",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 1.2295
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "No expected docs to retrieve for abstain",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2222
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.1459
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1227
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "No expected docs to retrieve for abstain",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 1.2295,
+        "rrf_score": 0.031545
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2222,
+        "rrf_score": 0.016393
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.1459,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1227,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1162,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.1098,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.1036,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.0982,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.0659,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.0468,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "No expected docs to retrieve for abstain",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.1036,
+        "rrf_score": 0.014925,
+        "reranker_score": 0.0009
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "bm25_score": 1.2295,
+        "rrf_score": 0.031545,
+        "reranker_score": 0.0003
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.1459,
+        "rrf_score": 0.016129,
+        "reranker_score": 0.0002
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1227,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.0002
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2222,
+        "rrf_score": 0.016393,
+        "reranker_score": 0.0001
+      }
+    ]
+  },
+  {
+    "id": "Q12",
+    "category": "unanswerable",
+    "question": "In which country is customer data stored?",
+    "expected_docs": [],
+    "bm25": "PASS",
+    "bm25_note": "No expected docs to retrieve for abstain",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 2.9768
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.3908
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.3908
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "No expected docs to retrieve for abstain",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.42
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.2931
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2831
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "No expected docs to retrieve for abstain",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 2.9768,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.031754
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.030579
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.2931,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.2831,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.2133,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.1473,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.134,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.0911,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec004_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Security incidents are triaged by the on-call engineer.",
+        "similarity_score": 0.0787,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "No expected docs to retrieve for abstain",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "bm25_score": 2.9768,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.0012
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.134,
+        "rrf_score": 0.014925,
+        "reranker_score": 0.0007
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.031754,
+        "reranker_score": 0.0004
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.2133,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0004
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.3908,
+        "rrf_score": 0.030579,
+        "reranker_score": 0.0001
+      }
+    ]
+  },
+  {
+    "id": "Q13",
+    "category": "ambiguous",
+    "question": "What is your retention policy?",
+    "expected_docs": [],
+    "bm25": "PASS",
+    "bm25_note": "Surfaced ambiguity docs: ['SEC-003', 'SEC-005']",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.8987
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "bm25_score": 1.8854
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Surfaced ambiguity docs: ['SEC-003', 'SEC-005']",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.5821
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.5283
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.3055
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Surfaced ambiguity docs: ['SEC-003', 'SEC-005']",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "bm25_score": 1.8854,
+        "rrf_score": 0.032522
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315,
+        "rrf_score": 0.032002
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.8987,
+        "rrf_score": 0.031545
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.3055,
+        "rrf_score": 0.015873
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2885,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec001_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Administrative access requires manager approval.",
+        "similarity_score": 0.2566,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.2214,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.1919,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.1376,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.1108,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Surfaced ambiguity docs: ['SEC-003', 'SEC-005']",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "bm25_score": 1.8854,
+        "rrf_score": 0.032522,
+        "reranker_score": 0.0111
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315,
+        "rrf_score": 0.032002,
+        "reranker_score": 0.0048
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "bm25_score": 1.8987,
+        "rrf_score": 0.031545,
+        "reranker_score": 0.0002
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.3055,
+        "rrf_score": 0.015873,
+        "reranker_score": 0.0001
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.2885,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0001
+      }
+    ]
+  },
+  {
+    "id": "Q14",
+    "category": "conflicting",
+    "question": "How long are database backups retained?",
+    "expected_docs": [
+      "SEC-003",
+      "SEC-005"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 4.4595
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.7755
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.7193
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.6812
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315,
+        "rrf_score": 0.032522
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 4.4595,
+        "rrf_score": 0.032266
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.7193,
+        "rrf_score": 0.016129
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.3385,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1518,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1202,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.0731,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.0691,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec002_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Data in transit is protected using TLS 1.2 or later.",
+        "similarity_score": 0.0312,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.0293,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 1.7315,
+        "rrf_score": 0.032522,
+        "reranker_score": 0.9961
+      },
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.7193,
+        "rrf_score": 0.016129,
+        "reranker_score": 0.9369
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 4.4595,
+        "rrf_score": 0.032266,
+        "reranker_score": 0.0612
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.3385,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0453
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1518,
+        "rrf_score": 0.015385,
+        "reranker_score": 0.0023
+      }
+    ]
+  },
+  {
+    "id": "Q15",
+    "category": "conflicting",
+    "question": "Are backups retained for 30 days or 90 days?",
+    "expected_docs": [
+      "SEC-003",
+      "SEC-005"
+    ],
+    "bm25": "PASS",
+    "bm25_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "bm25_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "bm25_score": 6.3449
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 5.8268
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 2.574
+      }
+    ],
+    "embedding": "PASS",
+    "embedding_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "embedding_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "similarity_score": 0.8531
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "similarity_score": 0.7629
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "similarity_score": 0.6005
+      }
+    ],
+    "hybrid_rrf": "PASS",
+    "hybrid_rrf_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "hybrid_rrf_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "bm25_score": 6.3449,
+        "rrf_score": 0.032787
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 5.8268,
+        "rrf_score": 0.032258
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 2.574,
+        "rrf_score": 0.031746
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.4169,
+        "rrf_score": 0.015625
+      },
+      {
+        "chunk_id": "chk_sec001_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Access permissions are reviewed quarterly.",
+        "similarity_score": 0.1904,
+        "rrf_score": 0.015385
+      },
+      {
+        "chunk_id": "chk_sec004_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "This policy does not specify a contractual customer notification deadline.",
+        "similarity_score": 0.1628,
+        "rrf_score": 0.015152
+      },
+      {
+        "chunk_id": "chk_sec002_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Encryption keys are managed in a dedicated key management service.",
+        "similarity_score": 0.0753,
+        "rrf_score": 0.014925
+      },
+      {
+        "chunk_id": "chk_sec002_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-002",
+        "title": "Encryption policy",
+        "version": "2026-01",
+        "excerpt": "Customer data is encrypted at rest using AES-256.",
+        "similarity_score": 0.0626,
+        "rrf_score": 0.014706
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.0391,
+        "rrf_score": 0.014493
+      },
+      {
+        "chunk_id": "chk_sec001_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-001",
+        "title": "Access control policy",
+        "version": "2026-01",
+        "excerpt": "Employees must use multi-factor authentication (MFA) to access production systems.",
+        "similarity_score": 0.039,
+        "rrf_score": 0.014286
+      }
+    ],
+    "hybrid_cross_encoder": "PASS",
+    "hybrid_cross_encoder_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "hybrid_cross_encoder_evidence": [
+      {
+        "chunk_id": "chk_sec003_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Backup retention is 30 days.",
+        "bm25_score": 6.3449,
+        "rrf_score": 0.032787,
+        "reranker_score": 0.9922
+      },
+      {
+        "chunk_id": "chk_sec005_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-005",
+        "title": "Backup retention exception",
+        "version": "2026-01",
+        "excerpt": "Database backup retention is 90 days.",
+        "bm25_score": 5.8268,
+        "rrf_score": 0.032258,
+        "reranker_score": 0.949
+      },
+      {
+        "chunk_id": "chk_sec004_002",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-004",
+        "title": "Incident response policy",
+        "version": "2026-01",
+        "excerpt": "Confirmed incidents are escalated to the security lead.",
+        "similarity_score": 0.0391,
+        "rrf_score": 0.014493,
+        "reranker_score": 0.1809
+      },
+      {
+        "chunk_id": "chk_sec003_003",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Restore procedures are tested quarterly.",
+        "similarity_score": 0.4169,
+        "rrf_score": 0.015625,
+        "reranker_score": 0.0116
+      },
+      {
+        "chunk_id": "chk_sec003_001",
+        "workspace_id": "ws_acme_corp",
+        "document_id": "SEC-003",
+        "title": "Backup policy",
+        "version": "2026-01",
+        "excerpt": "Database backups are created daily.",
+        "bm25_score": 2.574,
+        "rrf_score": 0.031746,
+        "reranker_score": 0.0086
+      }
+    ]
+  }
+]

@@ -173,58 +173,233 @@ def rerank_evidence(query, candidates, top_k=5):
     return sorted(reranked, key=lambda x: x["reranker_score"], reverse=True)[:top_k]
 
 def analyze_evidence(question, retrieved_evidence):
-    evidence_text = "\n".join([f"[{doc['document_id']}] {doc['excerpt']}" for doc in retrieved_evidence])
+    evidence_text = "\n".join([f"[{doc['chunk_id']}] {doc['excerpt']}" for doc in retrieved_evidence])
     
-    prompt = f"""You are a security questionnaire review assistant. 
-Your job is to strictly classify the interaction based ONLY on the user question and the retrieved evidence.
-DO NOT use any external knowledge to generate facts. You MUST use your knowledge to recognize technical synonyms (e.g., 'in transit' means 'moves between systems'). DO NOT generate unsupported answers.
+    prompt = f"""You are an evidence classifier for a security-policy questionnaire system.
 
-Classify the status as ONE of the following:
-1. ANSWERABLE: At least one of the retrieved passages contains the information requested by the user. If the passage explicitly addresses the topic of the question (e.g., using synonyms like 'in transit' for 'moves between systems', or 'restore procedures' for 'verify backups'), it is ANSWERABLE. (Note: if there are multiple passages with contradictory answers to the question, choose CONFLICTING_EVIDENCE instead).
-2. AMBIGUOUS: The question itself is underspecified or vague (e.g., asking "What is your retention policy?" when the evidence lists multiple types). Do NOT output AMBIGUOUS if one of the passages provides a direct answer to a reasonable interpretation of the user's question.
-3. INSUFFICIENT_EVIDENCE: None of the retrieved passages contain information that addresses the question. Before choosing this, carefully consider if the evidence answers the question using different phrasing (e.g., 'in transit' means 'moves between systems').
-4. CONFLICTING_EVIDENCE: Two or more retrieved policy passages specify materially different facts that could both answer the question (e.g., if one says 'backup retention is 30 days' and another says 'database backup retention is 90 days', and the user asks about database backup retention, you MUST choose CONFLICTING_EVIDENCE because the general policy contradicts the specific one).
+Your job is ONLY to classify whether the provided evidence supports the user's question.
 
-Output your classification in strict JSON format:
-{{
-  "status": "<STATUS>",
-  "reason": "<Explain briefly why based ONLY on the evidence>",
-  "clarification_question": "<If AMBIGUOUS, ask a specific question to clarify. Otherwise omit this field>"
-}}
+Do not generate a compliance answer.
+Do not use outside knowledge.
+Do not invent missing information.
+Use ONLY the provided evidence.
 
-Example 1:
-Question: "What is your retention policy?"
-Evidence: [SEC-003] Backup retention is 30 days. [SEC-005] Database backup retention is 90 days.
-JSON: {{"status": "AMBIGUOUS", "reason": "The question does not specify which type of retention policy is intended.", "clarification_question": "Do you mean database backup retention, customer data retention, or another type of record?"}}
+CLASSIFICATION RULES
 
-Example 2:
-Question: "Are backups retained for 30 days or 90 days?"
-Evidence: [SEC-003] Backup retention is 30 days. [SEC-005] Database backup retention is 90 days.
-JSON: {{"status": "CONFLICTING_EVIDENCE", "reason": "Two retrieved policy passages specify different backup retention periods."}}
+1. ANSWERABLE
+Return ANSWERABLE when at least one evidence passage directly establishes the information requested by the question.
 
-Example 3:
-Question: "How often are database backups created?"
-Evidence: 
-[SEC-003] Database backups are created daily.
-[SEC-001] Access permissions are reviewed quarterly.
-[SEC-004] Security incidents are triaged by the on-call engineer.
-JSON: {{"status": "ANSWERABLE", "reason": "The evidence directly states that database backups are created daily."}}
+Semantic equivalence is sufficient. The wording does not need to match exactly.
 
-Example 4:
-Question: "How is network traffic secured?"
-Evidence: 
-[SEC-010] Network traffic is secured using IPsec.
-JSON: {{"status": "ANSWERABLE", "reason": "The evidence explicitly states that network traffic is secured using IPsec."}}
+2. INSUFFICIENT_EVIDENCE
+Return INSUFFICIENT_EVIDENCE when the provided evidence does not establish the information requested.
+
+Do not infer or guess missing information.
+
+3. AMBIGUOUS
+Return AMBIGUOUS when the question itself is unclear because it does not specify what subject, record, system, data, or scope it refers to.
+
+If clarification is needed before determining which policy applies, use AMBIGUOUS.
+
+4. CONFLICTING
+Return CONFLICTING when two or more evidence passages provide materially different answers to the SAME requested fact.
+
+Do not choose one value over another.
+Preserve the conflicting evidence.
+
+IMPORTANT DISTINCTION:
+
+Relevant evidence does NOT automatically mean ANSWERABLE.
+
+Before returning ANSWERABLE, ask:
+
+"Does this evidence actually establish the specific fact requested by the question?"
+
+If the answer is no, use INSUFFICIENT_EVIDENCE or AMBIGUOUS as appropriate.
+
+If multiple passages establish different values for the same requested fact, use CONFLICTING.
+
+IMPORTANT DISTINCTION BETWEEN AMBIGUOUS AND CONFLICTING
+
+AMBIGUOUS means the QUESTION is underspecified.
+
+CONFLICTING means the QUESTION is specific, but the evidence gives different answers to that specific question.
+
+FEW-SHOT EXAMPLES
+
+Example 1 — ANSWERABLE
+
+Question:
+Who approves administrative access?
+
+Evidence:
+[SEC-001]
+Administrative access requires manager approval.
+
+Classification:
+ANSWERABLE
+
+Reason:
+The evidence directly establishes who approves administrative access.
 
 
-Now, classify this interaction:
+Example 2 — ANSWERABLE
 
-User Question:
+Question:
+How is data in transit protected?
+
+Evidence:
+[SEC-002]
+Data in transit is protected using TLS 1.2 or later.
+
+Classification:
+ANSWERABLE
+
+Reason:
+The evidence directly states how data in transit is protected.
+
+
+Example 3 — ANSWERABLE
+
+Question:
+How often are database backups created?
+
+Evidence:
+[SEC-003]
+Database backups are created daily.
+
+Classification:
+ANSWERABLE
+
+Reason:
+The evidence directly establishes the backup creation frequency.
+
+
+Example 4 — INSUFFICIENT_EVIDENCE
+
+Question:
+Is the company SOC 2 certified?
+
+Evidence:
+[SEC-001]
+Employees must use multi-factor authentication to access production systems.
+
+[SEC-003]
+Database backups are created daily.
+
+Classification:
+INSUFFICIENT_EVIDENCE
+
+Reason:
+The evidence does not establish whether the company is SOC 2 certified.
+
+
+Example 5 — INSUFFICIENT_EVIDENCE
+
+Question:
+Which cloud provider hosts production?
+
+Evidence:
+[SEC-001]
+Administrative access requires manager approval.
+
+[SEC-002]
+Customer data is encrypted at rest using AES-256.
+
+Classification:
+INSUFFICIENT_EVIDENCE
+
+Reason:
+The evidence does not establish which cloud provider hosts production.
+
+
+Example 6 — AMBIGUOUS
+
+Question:
+What is your retention policy?
+
+Evidence:
+[SEC-003]
+Backup retention is 30 days.
+
+[SEC-005]
+Database backup retention is 90 days.
+
+Classification:
+AMBIGUOUS
+
+Reason:
+The question does not specify which type of retention policy or which records are being asked about. The evidence contains retention information, but the scope of the question is unclear.
+
+Do NOT classify this as CONFLICTING merely because multiple retention values exist.
+
+
+Example 7 — CONFLICTING
+
+Question:
+How long are database backups retained?
+
+Evidence:
+[SEC-003]
+Backup retention is 30 days.
+
+[SEC-005]
+Database backup retention is 90 days.
+
+Classification:
+CONFLICTING
+
+Reason:
+The question specifically asks about database backup retention, and the evidence gives two different retention periods for that same fact.
+
+
+Example 8 — ANSWERABLE despite paraphrasing
+
+Question:
+Who gives permission for an employee to receive administrative privileges?
+
+Evidence:
+[SEC-001]
+Administrative access requires manager approval.
+
+Classification:
+ANSWERABLE
+
+Reason:
+"Receive administrative privileges" and "administrative access" refer to the same requested access, and the evidence identifies manager approval.
+
+
+Example 9 — AMBIGUOUS
+
+Question:
+How often is access reviewed for customers and employees?
+
+Evidence:
+[SEC-001]
+Access permissions are reviewed quarterly.
+
+Classification:
+AMBIGUOUS
+
+Reason:
+The evidence establishes the review frequency for documented access permissions, but the question explicitly asks about both customers and employees and the evidence does not establish that both groups are covered.
+
+
+NOW CLASSIFY THE CURRENT REQUEST
+
+Question:
 {question}
 
-Retrieved Evidence:
+Evidence:
 {evidence_text}
-"""
+
+Return ONLY valid JSON in exactly this structure:
+
+{{
+  "status": "ANSWERABLE | AMBIGUOUS | INSUFFICIENT_EVIDENCE | CONFLICTING",
+  "reason": "short explanation based only on the evidence",
+  "evidence_chunk_ids": ["chunk_id_1", "chunk_id_2"]
+}}"""
     try:
         response = ollama.chat(
             model='qwen2.5:3b',
@@ -315,7 +490,7 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
         "evidence": evidence,
         "mode": mode,
         "reason": llm_analysis.get("reason", ""),
-        "clarification_question": llm_analysis.get("clarification_question", None),
+        "evidence_chunk_ids": llm_analysis.get("evidence_chunk_ids", []),
         "warning": "Matching text is not proof that a question is answered. A human must review it. No AI answer was generated.",
     }
 
