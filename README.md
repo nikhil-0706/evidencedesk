@@ -18,6 +18,7 @@ An evidence-backed security questionnaire assistant with retrieval evaluation an
 
 **Retrieval & Reasoning:** 
 - **Retrieval:** The primary method is **Hybrid retrieval**, which combines exact keyword matching (BM25) and semantic retrieval (`all-MiniLM-L6-v2`). Reciprocal Rank Fusion (RRF) combines their ranked results without directly combining incompatible score scales. A purely lexical baseline is also available.
+- **Evidence Provenance:** Every piece of retrieved evidence is fully traceable and carries strict metadata: workspace, document, version, chunk, and exact source passage.
 - **Reasoning:** After retrieval, a local LLM strictly classifies the evidence as ANSWERABLE, AMBIGUOUS, INSUFFICIENT_EVIDENCE, or CONFLICTING_EVIDENCE based *only* on the provided passages.
 
 **Limitations:** Human review is still completely required. The AI does not generate conversational final answers. Not for production use.

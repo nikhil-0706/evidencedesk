@@ -45,14 +45,16 @@ embed_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
 PASSAGES = []
 for doc in DOCUMENTS:
-    for sentence in re.split(r"(?<=[.!?])\s+", doc["text"]):
-        if sentence.strip():
-            PASSAGES.append({
-                "document_id": doc["id"],
-                "title": doc["title"],
-                "version": doc["version"],
-                "excerpt": sentence.strip()
-            })
+    sentences = [s for s in re.split(r"(?<=[.!?])\s+", doc["text"]) if s.strip()]
+    for idx, sentence in enumerate(sentences, start=1):
+        PASSAGES.append({
+            "chunk_id": f"chk_{doc['id'].lower().replace('-', '')}_{idx:03d}",
+            "workspace_id": "ws_acme_corp",
+            "document_id": doc["id"],
+            "title": doc["title"],
+            "version": doc["version"],
+            "excerpt": sentence.strip()
+        })
 
 print("Encoding policy passages...")
 passage_texts = [p["excerpt"] for p in PASSAGES]
@@ -92,7 +94,7 @@ def rrf_fuse(bm25_results, embedding_results, k=60, top_k=10):
     fused_passages = {}
     
     def make_key(p):
-        return p["document_id"] + "||" + p["excerpt"]
+        return p["chunk_id"]
         
     for rank, p in enumerate(bm25_results, start=1):
         key = make_key(p)
@@ -181,15 +183,14 @@ class ReviewRequest(BaseModel):
 def retrieve(question):
     query = set(tokens(question))
     ranked = []
-    for doc in DOCUMENTS:
-        for sentence in re.split(r"(?<=[.!?])\s+", doc["text"]):
-            words = Counter(tokens(sentence))
-            matches = query.intersection(words)
-            score = len(matches) / max(len(query), 1)
-            if matches:
-                ranked.append({"document_id": doc["id"], "title": doc["title"],
-                               "version": doc["version"], "excerpt": sentence,
-                               "lexical_score": round(score, 4)})
+    for passage in PASSAGES:
+        words = Counter(tokens(passage["excerpt"]))
+        matches = query.intersection(words)
+        score = len(matches) / max(len(query), 1)
+        if matches:
+            p = passage.copy()
+            p["lexical_score"] = round(score, 4)
+            ranked.append(p)
     return sorted(ranked, key=lambda item: item["lexical_score"], reverse=True)[:3]
 
 def review(question, method="hybrid"):
@@ -271,7 +272,7 @@ PAGE = r'''<!DOCTYPE html>
 const el=id=>document.getElementById(id);
 function text(parent,tag,value){const node=document.createElement(tag);node.textContent=value;parent.appendChild(node);return node;}
 async function request(url,options){const response=await fetch(url,options);if(!response.ok)throw new Error('Request failed: '+response.status+' '+await response.text());return response.json();}
-el('review').onclick=async()=>{const button=el('review');button.disabled=true;el('result').textContent='Retrieving…';const method=document.querySelector('input[name="method"]:checked').value;try{const data=await request('/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:el('question').value,method:method})});const target=el('result');target.replaceChildren();text(target,'div',data.status.replaceAll('_',' ')).className='status';if(data.reason){text(target,'p','Reason: '+data.reason).style.fontWeight='bold';}if(data.clarification_question){text(target,'p','Clarification needed: '+data.clarification_question).style.color='#ffb86c';}text(target,'p',data.warning);for(const item of data.evidence){const block=document.createElement('article');text(block,'small',item.document_id+' · '+item.title+' · '+item.version);text(block,'p',item.excerpt);let scoreText=item.rrf_score!==undefined?'RRF score: '+item.rrf_score:item.bm25_score!==undefined?'BM25 score: '+item.bm25_score:item.lexical_score!==undefined?'Lexical overlap: '+item.lexical_score:'Embedding similarity: '+item.similarity_score;text(block,'small',scoreText+' — not confidence');target.appendChild(block);}}catch(error){el('result').textContent=error.message;}finally{button.disabled=false;}};
+el('review').onclick=async()=>{const button=el('review');button.disabled=true;el('result').textContent='Retrieving…';const method=document.querySelector('input[name="method"]:checked').value;try{const data=await request('/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:el('question').value,method:method})});const target=el('result');target.replaceChildren();text(target,'div',data.status.replaceAll('_',' ')).className='status';if(data.reason){text(target,'p','Reason: '+data.reason).style.fontWeight='bold';}if(data.clarification_question){text(target,'p','Clarification needed: '+data.clarification_question).style.color='#ffb86c';}text(target,'p',data.warning);for(const item of data.evidence){const block=document.createElement('article');text(block,'small','Workspace: '+item.workspace_id+' · Document: '+item.document_id+' · Version: '+item.version+' · Chunk: '+item.chunk_id);text(block,'p',item.excerpt);let scoreText=item.rrf_score!==undefined?'RRF score: '+item.rrf_score:item.bm25_score!==undefined?'BM25 score: '+item.bm25_score:item.lexical_score!==undefined?'Lexical overlap: '+item.lexical_score:'Embedding similarity: '+item.similarity_score;text(block,'small',scoreText+' — not confidence');target.appendChild(block);}}catch(error){el('result').textContent=error.message;}finally{button.disabled=false;}};
 el('evaluate').onclick=async()=>{el('evaluate').disabled=true;try{const data=await request('/evaluate');el('result').replaceChildren();text(el('result'),'pre',JSON.stringify(data,null,2));}catch(error){el('result').textContent=error.message;}finally{el('evaluate').disabled=false;}};
 request('/documents').then(docs=>{for(const doc of docs){const article=document.createElement('article');text(article,'small',doc.id+' · '+doc.title);text(article,'p',doc.text);el('sources').appendChild(article);}}).catch(error=>{el('sources').textContent=error.message;});
 </script></body></html>'''
