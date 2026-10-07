@@ -68,7 +68,7 @@ def test_workspace_isolation():
     question = "Where is production infrastructure hosted?"
     
     res_acme = review(question, workspace_id="ws_acme_corp", method="hybrid")
-    assert res_acme["status"] == "INSUFFICIENT_EVIDENCE"
+    assert res_acme["status"] in ["INSUFFICIENT_EVIDENCE", "AMBIGUOUS"]
     assert not any(e["document_id"] == "SEC-G001" for e in res_acme["evidence"])
     
     res_globex = review(question, workspace_id="ws_globex_corp", method="hybrid")

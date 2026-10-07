@@ -11,14 +11,30 @@ import json
 import re
 import sys
 from collections import Counter
+from typing import List, Literal, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sentence_transformers import SentenceTransformer, util, CrossEncoder
 import ollama
 from rank_bm25 import BM25Okapi
 from qdrant_client import QdrantClient, models
 import uuid
+
+
+# ---------------------------------------------------------------------------
+# Day 15: Structured output schema for SLM evidence classification
+# ---------------------------------------------------------------------------
+class EvidenceDecision(BaseModel):
+    status: Literal[
+        "ANSWERABLE",
+        "AMBIGUOUS",
+        "CONFLICTING",
+        "INSUFFICIENT_EVIDENCE",
+    ]
+    reason: str
+    evidence_chunk_ids: List[str] = Field(default_factory=list)
+    evidence_quote: str = Field(default="")
 
 DOCUMENTS = [
     {"id": "SEC-001", "title": "Access control policy", "version": "2026-01", "text": "Employees must use multi-factor authentication (MFA) to access production systems. Access permissions are reviewed quarterly. Administrative access requires manager approval.", "workspace_id": "ws_acme_corp"},
@@ -172,220 +188,175 @@ def rerank_evidence(query, candidates, top_k=5):
         
     return sorted(reranked, key=lambda x: x["reranker_score"], reverse=True)[:top_k]
 
-def analyze_evidence(question, retrieved_evidence):
-    evidence_text = "\n".join([f"[{doc['chunk_id']}] {doc['excerpt']}" for doc in retrieved_evidence])
-    
-    prompt = f"""You are an evidence classifier for a security-policy questionnaire system.
+# ---------------------------------------------------------------------------
+# Day 15: Improved prompt with semantic-equivalence guidance and evidence_quote
+# ---------------------------------------------------------------------------
+_REASONING_PROMPT = """\
+You are an evidence classifier for a security-policy questionnaire.
 
-Your job is ONLY to classify whether the provided evidence supports the user's question.
-
-Do not generate a compliance answer.
+Use ONLY the supplied evidence passages below.
 Do not use outside knowledge.
 Do not invent missing information.
-Use ONLY the provided evidence.
+Do not generate a compliance answer.
 
+===========================================================
 CLASSIFICATION RULES
+===========================================================
 
-1. ANSWERABLE
-Return ANSWERABLE when at least one evidence passage directly establishes the information requested by the question.
-
-Semantic equivalence is sufficient. The wording does not need to match exactly.
-
-2. INSUFFICIENT_EVIDENCE
-Return INSUFFICIENT_EVIDENCE when the provided evidence does not establish the information requested.
-
-Do not infer or guess missing information.
-
-3. AMBIGUOUS
-Return AMBIGUOUS when the question itself is unclear because it does not specify what subject, record, system, data, or scope it refers to.
-
-If clarification is needed before determining which policy applies, use AMBIGUOUS.
-
-4. CONFLICTING
-Return CONFLICTING when two or more evidence passages provide materially different answers to the SAME requested fact.
-
-Do not choose one value over another.
-Preserve the conflicting evidence.
-
-IMPORTANT DISTINCTION:
-
-Relevant evidence does NOT automatically mean ANSWERABLE.
-
-Before returning ANSWERABLE, ask:
-
-"Does this evidence actually establish the specific fact requested by the question?"
-
-If the answer is no, use INSUFFICIENT_EVIDENCE or AMBIGUOUS as appropriate.
-
-If multiple passages establish different values for the same requested fact, use CONFLICTING.
-
-IMPORTANT DISTINCTION BETWEEN AMBIGUOUS AND CONFLICTING
-
-AMBIGUOUS means the QUESTION is underspecified.
-
-CONFLICTING means the QUESTION is specific, but the evidence gives different answers to that specific question.
-
-FEW-SHOT EXAMPLES
-
-Example 1 — ANSWERABLE
-
-Question:
-Who approves administrative access?
-
-Evidence:
-[SEC-001]
-Administrative access requires manager approval.
-
-Classification:
 ANSWERABLE
+Return ANSWERABLE when at least one evidence passage directly establishes
+the fact requested by the question.
+Semantic equivalence is allowed — the question and evidence do NOT need to
+use identical words. Focus on whether the evidence establishes the requested fact.
 
-Reason:
-The evidence directly establishes who approves administrative access.
+Before returning INSUFFICIENT_EVIDENCE, ask yourself:
+"Does any supplied passage establish the core fact requested, even with
+different terminology?"
+If YES → return ANSWERABLE.
 
-
-Example 2 — ANSWERABLE
-
-Question:
-How is data in transit protected?
-
-Evidence:
-[SEC-002]
-Data in transit is protected using TLS 1.2 or later.
-
-Classification:
-ANSWERABLE
-
-Reason:
-The evidence directly states how data in transit is protected.
-
-
-Example 3 — ANSWERABLE
-
-Question:
-How often are database backups created?
-
-Evidence:
-[SEC-003]
-Database backups are created daily.
-
-Classification:
-ANSWERABLE
-
-Reason:
-The evidence directly establishes the backup creation frequency.
-
-
-Example 4 — INSUFFICIENT_EVIDENCE
-
-Question:
-Is the company SOC 2 certified?
-
-Evidence:
-[SEC-001]
-Employees must use multi-factor authentication to access production systems.
-
-[SEC-003]
-Database backups are created daily.
-
-Classification:
 INSUFFICIENT_EVIDENCE
+Return INSUFFICIENT_EVIDENCE only when the supplied evidence genuinely does
+not establish the requested fact.
 
-Reason:
-The evidence does not establish whether the company is SOC 2 certified.
-
-
-Example 5 — INSUFFICIENT_EVIDENCE
-
-Question:
-Which cloud provider hosts production?
-
-Evidence:
-[SEC-001]
-Administrative access requires manager approval.
-
-[SEC-002]
-Customer data is encrypted at rest using AES-256.
-
-Classification:
-INSUFFICIENT_EVIDENCE
-
-Reason:
-The evidence does not establish which cloud provider hosts production.
-
-
-Example 6 — AMBIGUOUS
-
-Question:
-What is your retention policy?
-
-Evidence:
-[SEC-003]
-Backup retention is 30 days.
-
-[SEC-005]
-Database backup retention is 90 days.
-
-Classification:
 AMBIGUOUS
+Return AMBIGUOUS when the question itself is underspecified and clarification
+is required before determining which policy applies.
 
-Reason:
-The question does not specify which type of retention policy or which records are being asked about. The evidence contains retention information, but the scope of the question is unclear.
-
-Do NOT classify this as CONFLICTING merely because multiple retention values exist.
-
-
-Example 7 — CONFLICTING
-
-Question:
-How long are database backups retained?
-
-Evidence:
-[SEC-003]
-Backup retention is 30 days.
-
-[SEC-005]
-Database backup retention is 90 days.
-
-Classification:
 CONFLICTING
+Return CONFLICTING when the question is specific but the supplied evidence
+gives materially different answers for the same requested fact.
 
-Reason:
-The question specifically asks about database backup retention, and the evidence gives two different retention periods for that same fact.
+===========================================================
+AMBIGUOUS vs CONFLICTING
+===========================================================
+
+AMBIGUOUS = the QUESTION is underspecified.
+CONFLICTING = the QUESTION is specific but evidence disagrees.
+
+===========================================================
+SEMANTIC EQUIVALENCE — KEY EXAMPLES
+===========================================================
+
+These pairs of phrases are semantically equivalent and MUST be treated as ANSWERABLE:
+
+  "Who takes the first look at a reported security incident?"
+  + "Security incidents are triaged by the on-call engineer."
+  → ANSWERABLE  ("first look" ≈ "triage"; "on-call engineer" is the role)
+
+  "Where are encryption keys managed?"
+  + "Encryption keys are managed in a dedicated key management service."
+  → ANSWERABLE  (the evidence explicitly names the management location)
+
+  "Who gives permission for administrative privileges?"
+  + "Administrative access requires manager approval."
+  → ANSWERABLE  ("gives permission" ≈ "requires approval")
+
+Do not require exact keyword matching.
+Do not reject an answer merely because the evidence uses a related operational
+term rather than the exact wording of the question.
+
+===========================================================
+FEW-SHOT EXAMPLES
+===========================================================
+
+Example 1 — ANSWERABLE (direct)
+
+Question: Who approves administrative access?
+Evidence: [chk_sec001_003] Administrative access requires manager approval.
+
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence directly establishes who approves administrative access.",
+  "evidence_chunk_ids": ["chk_sec001_003"],
+  "evidence_quote": "Administrative access requires manager approval."
+}}
 
 
-Example 8 — ANSWERABLE despite paraphrasing
+Example 2 — ANSWERABLE (paraphrase: 'first look' = 'triage')
 
-Question:
-Who gives permission for an employee to receive administrative privileges?
+Question: Who takes the first look at a reported security incident?
+Evidence: [chk_sec004_001] Security incidents are triaged by the on-call engineer.
+         [chk_sec004_002] Confirmed incidents are escalated to the security lead.
 
-Evidence:
-[SEC-001]
-Administrative access requires manager approval.
-
-Classification:
-ANSWERABLE
-
-Reason:
-"Receive administrative privileges" and "administrative access" refer to the same requested access, and the evidence identifies manager approval.
+{{
+  "status": "ANSWERABLE",
+  "reason": "Triage is the initial handling of a security incident. The on-call engineer performs the first look.",
+  "evidence_chunk_ids": ["chk_sec004_001"],
+  "evidence_quote": "Security incidents are triaged by the on-call engineer."
+}}
 
 
-Example 9 — AMBIGUOUS
+Example 3 — ANSWERABLE (paraphrase: 'managed' in KMS = location)
 
-Question:
-How often is access reviewed for customers and employees?
+Question: Where are encryption keys managed?
+Evidence: [chk_sec002_003] Encryption keys are managed in a dedicated key management service.
 
-Evidence:
-[SEC-001]
-Access permissions are reviewed quarterly.
-
-Classification:
-AMBIGUOUS
-
-Reason:
-The evidence establishes the review frequency for documented access permissions, but the question explicitly asks about both customers and employees and the evidence does not establish that both groups are covered.
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence explicitly identifies where encryption keys are managed.",
+  "evidence_chunk_ids": ["chk_sec002_003"],
+  "evidence_quote": "Encryption keys are managed in a dedicated key management service."
+}}
 
 
+Example 4 — ANSWERABLE (data in transit)
+
+Question: How is data in transit protected?
+Evidence: [chk_sec002_002] Data in transit is protected using TLS 1.2 or later.
+
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence directly states how data in transit is protected.",
+  "evidence_chunk_ids": ["chk_sec002_002"],
+  "evidence_quote": "Data in transit is protected using TLS 1.2 or later."
+}}
+
+
+Example 5 — AMBIGUOUS (retention policy — unspecified scope)
+
+Question: What is your retention policy?
+Evidence: [chk_sec003_002] Backup retention is 30 days.
+         [chk_sec005_001] Database backup retention is 90 days.
+
+{{
+  "status": "AMBIGUOUS",
+  "reason": "The question does not specify which type of retention policy or which records are being asked about.",
+  "evidence_chunk_ids": [],
+  "evidence_quote": ""
+}}
+
+
+Example 6 — CONFLICTING (database backup retention — specific question, different values)
+
+Question: How long are database backups retained?
+Evidence: [chk_sec003_002] Backup retention is 30 days.
+         [chk_sec005_001] Database backup retention is 90 days.
+
+{{
+  "status": "CONFLICTING",
+  "reason": "The evidence gives two different retention periods for database backups.",
+  "evidence_chunk_ids": ["chk_sec003_002", "chk_sec005_001"],
+  "evidence_quote": ""
+}}
+
+
+Example 7 — INSUFFICIENT_EVIDENCE (SOC 2 not in corpus)
+
+Question: Is the company SOC 2 certified?
+Evidence: [chk_sec001_001] Employees must use multi-factor authentication.
+         [chk_sec003_001] Database backups are created daily.
+
+{{
+  "status": "INSUFFICIENT_EVIDENCE",
+  "reason": "The evidence does not establish whether the company is SOC 2 certified.",
+  "evidence_chunk_ids": [],
+  "evidence_quote": ""
+}}
+
+
+===========================================================
 NOW CLASSIFY THE CURRENT REQUEST
+===========================================================
 
 Question:
 {question}
@@ -393,27 +364,148 @@ Question:
 Evidence:
 {evidence_text}
 
-Return ONLY valid JSON in exactly this structure:
-
+Return ONLY valid JSON matching this schema exactly:
 {{
   "status": "ANSWERABLE | AMBIGUOUS | INSUFFICIENT_EVIDENCE | CONFLICTING",
   "reason": "short explanation based only on the evidence",
-  "evidence_chunk_ids": ["chunk_id_1", "chunk_id_2"]
-}}"""
+  "evidence_chunk_ids": ["chunk_id_1"],
+  "evidence_quote": "exact verbatim quote from supplied evidence if ANSWERABLE, else empty string"
+}}
+"""
+
+
+def _validate_slm_output(
+    raw: dict,
+    retrieved_evidence: list,
+) -> dict:
+    """
+    Validate and sanitise SLM output against EvidenceDecision schema.
+
+    Returns a sanitised dict.  Never raises — always returns a safe dict
+    whose 'status' is one of the four allowed values or 'VALIDATION_ERROR'.
+    """
+    ALLOWED_STATUSES = {"ANSWERABLE", "AMBIGUOUS", "CONFLICTING", "INSUFFICIENT_EVIDENCE"}
+    valid_chunk_ids = {p["chunk_id"] for p in retrieved_evidence}
+    all_excerpts = [p["excerpt"] for p in retrieved_evidence]
+
+    # 1. Pydantic schema validation
+    try:
+        decision = EvidenceDecision(**raw)
+    except (ValidationError, TypeError) as exc:
+        return {
+            "status": "VALIDATION_ERROR",
+            "reason": f"Schema validation failed: {exc}",
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
+            "_validation_error": True,
+        }
+
+    # 2. Status must be one of the four allowed values (Pydantic already checks, but be explicit)
+    if decision.status not in ALLOWED_STATUSES:
+        return {
+            "status": "VALIDATION_ERROR",
+            "reason": f"Invalid status value: {decision.status!r}",
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
+            "_validation_error": True,
+        }
+
+    # 3. Filter chunk_ids to only those actually in retrieved evidence
+    safe_chunk_ids = [cid for cid in decision.evidence_chunk_ids if cid in valid_chunk_ids]
+    if decision.evidence_chunk_ids and not safe_chunk_ids:
+        # All claimed chunk IDs were unknown — downgrade to safe state
+        return {
+            "status": "VALIDATION_ERROR",
+            "reason": (
+                f"All returned chunk_ids {decision.evidence_chunk_ids!r} "
+                "are not in the retrieved evidence set."
+            ),
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
+            "_validation_error": True,
+        }
+
+    # 4. ANSWERABLE must have a non-empty evidence_quote
+    if decision.status == "ANSWERABLE" and not decision.evidence_quote.strip():
+        # Treat as validation failure — do not silently accept
+        return {
+            "status": "VALIDATION_ERROR",
+            "reason": "ANSWERABLE classification requires a non-empty evidence_quote.",
+            "evidence_chunk_ids": safe_chunk_ids,
+            "evidence_quote": "",
+            "_validation_error": True,
+        }
+
+    # 5. evidence_quote must appear in the supplied evidence (verbatim substring check)
+    if decision.status == "ANSWERABLE" and decision.evidence_quote.strip():
+        quote = decision.evidence_quote.strip()
+        quote_found = any(quote in excerpt for excerpt in all_excerpts)
+        if not quote_found:
+            return {
+                "status": "VALIDATION_ERROR",
+                "reason": (
+                    f"evidence_quote not found in supplied evidence: {quote!r}"
+                ),
+                "evidence_chunk_ids": safe_chunk_ids,
+                "evidence_quote": "",
+                "_validation_error": True,
+            }
+
+    return {
+        "status": decision.status,
+        "reason": decision.reason,
+        "evidence_chunk_ids": safe_chunk_ids,
+        "evidence_quote": decision.evidence_quote,
+    }
+
+
+def analyze_evidence(question: str, retrieved_evidence: list) -> dict:
+    """
+    Call the local SLM to classify whether the retrieved evidence answers the
+    question, then validate and sanitise the structured JSON output.
+
+    Returns a dict with keys: status, reason, evidence_chunk_ids, evidence_quote.
+    Never raises — always returns a safe dict.
+    """
+    if not retrieved_evidence:
+        return {
+            "status": "INSUFFICIENT_EVIDENCE",
+            "reason": "No evidence was retrieved.",
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
+        }
+
+    evidence_text = "\n".join(
+        [f"[{doc['chunk_id']}] {doc['excerpt']}" for doc in retrieved_evidence]
+    )
+    prompt = _REASONING_PROMPT.format(question=question, evidence_text=evidence_text)
+
     try:
         response = ollama.chat(
-            model='qwen2.5:3b',
-            messages=[{'role': 'user', 'content': prompt}],
-            format='json',
-            options={"temperature": 0.0}
+            model="qwen2.5:3b",
+            messages=[{"role": "user", "content": prompt}],
+            format="json",
+            options={"temperature": 0.0},
         )
-        return json.loads(response['message']['content'])
-    except Exception as e:
+        raw = json.loads(response["message"]["content"])
+    except json.JSONDecodeError as exc:
+        return {
+            "status": "VALIDATION_ERROR",
+            "reason": f"SLM returned malformed JSON: {exc}",
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
+            "_validation_error": True,
+        }
+    except Exception as exc:
         return {
             "status": "ERROR",
-            "reason": f"LLM reasoning failed: {str(e)}"
+            "reason": f"LLM call failed: {exc}",
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
         }
-# -----------------------------------
+
+    return _validate_slm_output(raw, retrieved_evidence)
+# ---------------------------------------------------------------------------
 
 class ReviewRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1500)
@@ -491,6 +583,7 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
         "mode": mode,
         "reason": llm_analysis.get("reason", ""),
         "evidence_chunk_ids": llm_analysis.get("evidence_chunk_ids", []),
+        "evidence_quote": llm_analysis.get("evidence_quote", ""),
         "warning": "Matching text is not proof that a question is answered. A human must review it. No AI answer was generated.",
     }
 

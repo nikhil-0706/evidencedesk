@@ -1,0 +1,155 @@
+[
+  {
+    "id": "Q16",
+    "category": "direct",
+    "question": "Who triages security incidents?",
+    "expected_status": "ANSWERABLE",
+    "expected_docs": [
+      "SEC-004"
+    ],
+    "retrieval_score": "PASS",
+    "retrieval_note": "Found exact expected passage",
+    "slm_status": "ANSWERABLE",
+    "slm_reason": "The evidence directly establishes who tris security incidents.",
+    "evidence_quote": "Security incidents are triaged by the on-call engineer.",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q17",
+    "category": "direct",
+    "question": "Who receives escalated security incidents?",
+    "expected_status": "ANSWERABLE",
+    "expected_docs": [
+      "SEC-004"
+    ],
+    "retrieval_score": "PASS",
+    "retrieval_note": "Found exact expected passage",
+    "slm_status": "ANSWERABLE",
+    "slm_reason": "The evidence establishes who receives escalated security incidents.",
+    "evidence_quote": "Confirmed incidents are escalated to the security lead.",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q18",
+    "category": "direct",
+    "question": "What is the contractual customer notification deadline for security incidents?",
+    "expected_status": "ANSWERABLE",
+    "expected_docs": [
+      "SEC-004"
+    ],
+    "retrieval_score": "PASS",
+    "retrieval_note": "Found exact expected passage",
+    "slm_status": "INSUFFICIENT_EVIDENCE",
+    "slm_reason": "The evidence does not establish the contractual customer notification deadline for security incidents.",
+    "evidence_quote": "",
+    "slm_match": false,
+    "final": "PARTIAL"
+  },
+  {
+    "id": "Q19",
+    "category": "paraphrased",
+    "question": "Which role performs initial assessment of security events?",
+    "expected_status": "ANSWERABLE",
+    "expected_docs": [
+      "SEC-004"
+    ],
+    "retrieval_score": "PASS",
+    "retrieval_note": "Found exact expected passage",
+    "slm_status": "ANSWERABLE",
+    "slm_reason": "The evidence establishes that the on-call engineer performs the initial assessment of security incidents.",
+    "evidence_quote": "Security incidents are triaged by the on-call engineer.",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q20",
+    "category": "paraphrased",
+    "question": "To whom are verified security incidents escalated?",
+    "expected_status": "ANSWERABLE",
+    "expected_docs": [
+      "SEC-004"
+    ],
+    "retrieval_score": "PASS",
+    "retrieval_note": "Found exact expected passage",
+    "slm_status": "ANSWERABLE",
+    "slm_reason": "The evidence establishes who escalates confirmed security incidents.",
+    "evidence_quote": "Confirmed incidents are escalated to the security lead.",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q21",
+    "category": "unanswerable",
+    "question": "What is your SLA for resolving high-severity security incidents?",
+    "expected_status": "INSUFFICIENT_EVIDENCE",
+    "expected_docs": [],
+    "retrieval_score": "PASS",
+    "retrieval_note": "No expected docs required for unanswerable",
+    "slm_status": "INSUFFICIENT_EVIDENCE",
+    "slm_reason": "The evidence does not establish the SLA for resolving high-severity security incidents.",
+    "evidence_quote": "",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q22",
+    "category": "unanswerable",
+    "question": "How frequently are incident response tabletop exercises conducted?",
+    "expected_status": "INSUFFICIENT_EVIDENCE",
+    "expected_docs": [],
+    "retrieval_score": "PASS",
+    "retrieval_note": "No expected docs required for unanswerable",
+    "slm_status": "INSUFFICIENT_EVIDENCE",
+    "slm_reason": "The evidence does not provide any information about the frequency of incident response tabletop exercises.",
+    "evidence_quote": "",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q23",
+    "category": "ambiguous",
+    "question": "How quickly do you respond to incidents?",
+    "expected_status": "AMBIGUOUS",
+    "expected_docs": [],
+    "retrieval_score": "PASS",
+    "retrieval_note": "No expected docs for clarification case",
+    "slm_status": "AMBIGUOUS",
+    "slm_reason": "The question does not specify the timeframe for incident response.",
+    "evidence_quote": "",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q24",
+    "category": "unanswerable",
+    "question": "Are security incidents escalated immediately or within 24 hours?",
+    "expected_status": "INSUFFICIENT_EVIDENCE",
+    "expected_docs": [],
+    "retrieval_score": "PASS",
+    "retrieval_note": "No expected docs required for unanswerable",
+    "slm_status": "INSUFFICIENT_EVIDENCE",
+    "slm_reason": "The evidence does not provide information about whether security incidents are escalated immediately or within 24 hours.",
+    "evidence_quote": "",
+    "slm_match": true,
+    "final": "PASS"
+  },
+  {
+    "id": "Q25",
+    "category": "conflicting",
+    "question": "What single database backup retention period should I put in the questionnaire?",
+    "expected_status": "CONFLICTING",
+    "expected_docs": [
+      "SEC-003",
+      "SEC-005"
+    ],
+    "retrieval_score": "PASS",
+    "retrieval_note": "Found all conflicting docs: ['SEC-003', 'SEC-005']",
+    "slm_status": "CONFLICTING",
+    "slm_reason": "The evidence gives two different retention periods for database backups (90 days and 30 days).",
+    "evidence_quote": "",
+    "slm_match": true,
+    "final": "PASS"
+  }
+]
