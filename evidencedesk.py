@@ -121,9 +121,9 @@ Your job is to strictly classify the interaction based ONLY on the user question
 DO NOT use any external knowledge. DO NOT generate unsupported answers.
 
 Classify the status as ONE of the following:
-1. ANSWERABLE: The retrieved evidence directly and clearly addresses the question. (Note: If the evidence contains the answer AND some extra information, it is still ANSWERABLE, not ambiguous.)
+1. ANSWERABLE: At least one of the retrieved passages contains the information requested by the user. (Ignore irrelevant passages. You may use basic language comprehension to recognize synonyms or standard terms, e.g. knowing 'encrypted' answers a question about 'encryption'.)
 2. AMBIGUOUS: The question itself is underspecified or vague (e.g. if the user asks "What is your retention policy?" but there are multiple types of retention, or it's not clear which they mean).
-3. INSUFFICIENT_EVIDENCE: The retrieved passages do not contain evidence supporting the requested fact.
+3. INSUFFICIENT_EVIDENCE: None of the retrieved passages contain information that addresses the question.
 4. CONFLICTING_EVIDENCE: Two or more retrieved policy passages specify contradictory facts (e.g. one says 30 days, another says 90 days).
 
 Output your classification in strict JSON format:
@@ -145,7 +145,10 @@ JSON: {{"status": "CONFLICTING_EVIDENCE", "reason": "Two retrieved policy passag
 
 Example 3:
 Question: "How often are database backups created?"
-Evidence: [SEC-003] Database backups are created daily.
+Evidence: 
+[SEC-003] Database backups are created daily.
+[SEC-001] Access permissions are reviewed quarterly.
+[SEC-004] Security incidents are triaged by the on-call engineer.
 JSON: {{"status": "ANSWERABLE", "reason": "The evidence directly states that database backups are created daily."}}
 
 Now, classify this interaction:
