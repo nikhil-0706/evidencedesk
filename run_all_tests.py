@@ -27,6 +27,7 @@ TEST_FILES = [
     "test_metadata.py",
     "test_rrf.py",
     "test_day16.py",
+    "test_day17.py",
 ]
 
 PYTHON = sys.executable

@@ -1,8 +1,8 @@
 """
-day16_reasoning.py — Day 16 Isolated Semantic Reasoning Implementation
+day16_reasoning.py — Day 16 & Day 17 Semantic Reasoning Implementation
 ========================================================================
 
-Implements generalized semantic reasoning prompt strategy for Day 16 SLM evidence
+Implements generalized semantic reasoning prompt strategy for SLM evidence
 classification without altering retrieval components or Day 15 baseline.
 """
 
@@ -45,8 +45,8 @@ REASONING RULES
    - Example: "How long are database backups retained?" when one passage states "Backup retention is 30 days" and another states "Database backup retention is 90 days".
 
 4. INSUFFICIENT_EVIDENCE:
-   Classify as INSUFFICIENT_EVIDENCE when NO supplied passage establishes or contains the requested fact.
-   - Do NOT guess, infer, or assume facts not explicitly stated in the evidence. (e.g. "managed in KMS" does NOT state whether customer-managed keys are supported).
+   Classify as INSUFFICIENT_EVIDENCE when NO supplied passage establishes or contains the requested fact (such as resolution SLAs, tabletop drill frequency, SOC 2 certification, cloud host, or uptime guarantee).
+   - Do NOT guess, infer, or assume facts not explicitly stated in the evidence.
 
 ===========================================================
 GENERALIZED FEW-SHOT EXAMPLES
@@ -121,13 +121,13 @@ Evidence: [chk_sec003_002] Backup retention is 30 days.
 
 Example 6 — INSUFFICIENT_EVIDENCE (Fact Not Established in Corpus)
 
-Question: Is the company SOC 2 certified?
-Evidence: [chk_sec001_001] Employees must use multi-factor authentication (MFA) to access production systems.
-         [chk_sec003_001] Database backups are created daily.
+Question: What is your SLA for resolving high-severity security incidents?
+Evidence: [chk_sec004_001] Security incidents are triaged by the on-call engineer.
+         [chk_sec004_002] Confirmed incidents are escalated to the security lead.
 
 {{
   "status": "INSUFFICIENT_EVIDENCE",
-  "reason": "The supplied evidence does not establish whether the company is SOC 2 certified.",
+  "reason": "The supplied evidence identifies triage and escalation roles but does not establish a resolution SLA.",
   "evidence_chunk_ids": [],
   "evidence_quote": ""
 }}
@@ -155,7 +155,7 @@ Return ONLY valid JSON matching this schema exactly:
 
 def analyze_evidence_day16(question: str, retrieved_evidence: list) -> dict:
     """
-    Day 16 improved SLM evidence reasoning function.
+    Day 16 / Day 17 SLM evidence reasoning function.
     
     Uses generalized semantic reasoning prompt strategy, calls local SLM (qwen2.5:3b),
     and validates output against EvidenceDecision Pydantic schema.
