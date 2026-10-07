@@ -29,6 +29,7 @@ TEST_FILES = [
     "test_day16.py",
     "test_day17.py",
     "test_day18.py",
+    "test_day19.py",
 ]
 
 PYTHON = sys.executable

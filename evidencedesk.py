@@ -507,6 +507,15 @@ def analyze_evidence(question: str, retrieved_evidence: list) -> dict:
     return _validate_slm_output(raw, retrieved_evidence)
 # ---------------------------------------------------------------------------
 
+class DecisionRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=1500)
+    workspace_id: str = Field(default="ws_acme_corp")
+    ai_status: str
+    decision: Literal["APPROVE", "EDIT", "REJECT"]
+    edited_response: Optional[str] = None
+    reviewer_notes: Optional[str] = None
+    selected_chunk_ids: List[str] = Field(default_factory=list)
+
 class ReviewRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1500)
     method: str = Field(default="hybrid")
@@ -568,6 +577,7 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
 
         return {
             "question": question,
+            "workspace_id": workspace_id,
             "status": "review_required" if sufficient else "insufficient_evidence",
             "candidate_excerpt": evidence[0]["excerpt"] if sufficient else None,
             "evidence": evidence,
@@ -577,6 +587,7 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
 
     return {
         "question": question,
+        "workspace_id": workspace_id,
         "status": llm_analysis.get("status", "review_required"),
         "candidate_excerpt": evidence[0]["excerpt"] if evidence else None,
         "evidence": evidence,
@@ -611,25 +622,436 @@ def review_endpoint(body: ReviewRequest):
         raise HTTPException(status_code=422, detail="Enter at least three non-whitespace characters.")
     return review(body.question.strip(), body.method, body.workspace_id)
 
+@app.post("/review/decision")
+def decision_endpoint(body: DecisionRequest):
+    if body.decision == "EDIT" and not (body.edited_response or "").strip():
+        raise HTTPException(status_code=422, detail="Edited response required when decision is EDIT.")
+    import datetime
+    return {
+        "status": "DECISION_RECORDED",
+        "decision": body.decision,
+        "question": body.question,
+        "workspace_id": body.workspace_id,
+        "ai_status": body.ai_status,
+        "final_response": body.edited_response.strip() if body.decision == "EDIT" else (body.edited_response or ""),
+        "reviewer_notes": (body.reviewer_notes or "").strip(),
+        "selected_chunk_ids": body.selected_chunk_ids,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+
 @app.get("/evaluate")
 def evaluation_endpoint():
     return evaluate()
 
 PAGE = r'''<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EvidenceDesk baseline</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EvidenceDesk — Human Review Workspace</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101725;color:#edf2fc;font:16px/1.6 system-ui,sans-serif}main{max-width:1000px;margin:auto;padding:40px 22px}header{border-bottom:1px solid #344257;padding-bottom:24px;margin-bottom:24px}.tag{color:#87d9c3;font-size:13px;letter-spacing:2px}h1{font-size:38px;margin:8px 0}p{color:#b8c4d8}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:#192337;border:1px solid #344257;border-radius:16px;padding:24px}textarea{width:100%;min-height:130px;background:#101725;color:white;border:1px solid #5a6c84;border-radius:8px;padding:12px;font:inherit}button{background:#9ae5cf;border:0;border-radius:8px;padding:12px 17px;margin:12px 8px 0 0;font-weight:700;cursor:pointer}button:disabled{opacity:.5}article{border-top:1px solid #344257;padding-top:12px;margin-top:16px}small{color:#9ae5cf}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.note{font-size:13px}.status{font-weight:700;color:#9ae5cf}a{color:#9ae5cf}@media(max-width:700px){.grid{grid-template-columns:1fr}h1{font-size:30px}}
-</style></head><body><main><header><div class="tag">EVIDENCEDESK / BUILD 0.1</div><h1>Evidence before answers.</h1><p>A security-questionnaire review baseline using synthetic policies.</p><small>Local demo · lexical retrieval · no LLM · no authentication</small></header>
-<div class="grid"><section class="panel"><h2>Ask a policy question</h2><label for="question">Question</label><textarea id="question">What encryption protects customer data at rest?</textarea><div style="margin-top:12px; margin-bottom:12px"><strong>Retrieval method:</strong> <label style="margin-right:12px"><input type="radio" name="method" value="lexical"> Lexical</label> <label style="margin-right:12px"><input type="radio" name="method" value="bm25"> BM25</label> <label style="margin-right:12px"><input type="radio" name="method" value="embedding"> Embedding</label> <label><input type="radio" name="method" value="hybrid" checked> Hybrid (RRF)</label></div><button id="review">Find evidence</button><button id="evaluate">Run smoke tests</button><p class="note">Try: “Are you SOC 2 certified?” No generated answer is produced. Relevant excerpts always require human review.</p><a href="/docs">API documentation</a></section><section class="panel" aria-live="polite"><h2>Review workspace</h2><div id="result">Submit a question to inspect the retrieved evidence.</div></section></div>
-<section class="panel" style="margin-top:20px"><h2>Synthetic source documents</h2><div id="sources"></div></section></main>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box}
+body{margin:0;background:#0b0f19;color:#e2e8f0;font-family:'Inter',system-ui,sans-serif;line-height:1.5}
+main{max-width:1200px;margin:auto;padding:32px 20px}
+header{border-bottom:1px solid #1e293b;padding-bottom:20px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.brand-tag{color:#10b981;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+h1{font-size:32px;font-weight:700;margin:4px 0 0 0;color:#f8fafc;letter-spacing:-0.5px}
+.subtitle{color:#94a3b8;font-size:14px;margin-top:4px}
+.gov-banner{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:#34d399;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.5px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:24px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.3)}
+.panel h2{font-size:18px;font-weight:600;margin:0 0 16px 0;color:#f1f5f9;display:flex;align-items:center;gap:8px}
+label{display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+select,textarea,input[type="text"]{width:100%;background:#090d16;color:#f8fafc;border:1px solid #334155;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:14px}
+select:focus,textarea:focus,input[type="text"]:focus{outline:none;border-color:#10b981}
+textarea{min-height:100px;resize:vertical}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.preset-btn{background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all 0.15s}
+.preset-btn:hover{background:#334155;color:#fff}
+.method-group{display:flex;gap:12px;margin:12px 0 16px 0;font-size:13px;color:#cbd5e1}
+.btn-primary{background:#10b981;color:#042f2e;border:0;border-radius:8px;padding:12px 20px;font-weight:700;font-size:14px;cursor:pointer;transition:background 0.15s}
+.btn-primary:hover{background:#34d399}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-secondary{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:12px 16px;font-weight:600;font-size:14px;cursor:pointer;margin-left:8px}
+.btn-secondary:hover{background:#334155}
+
+/* AI Status Badges */
+.badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:0.5px}
+.badge-ANSWERABLE{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3)}
+.badge-AMBIGUOUS{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+.badge-INSUFFICIENT_EVIDENCE{background:rgba(139,92,246,0.15);color:#c084fc;border:1px solid rgba(139,92,246,0.3)}
+.badge-CONFLICTING{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+.badge-VALIDATION_ERROR{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+
+.box{background:#090d16;border:1px solid #1e293b;border-radius:8px;padding:14px;margin-top:12px}
+.box-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.quote-box{border-left:3px solid #10b981;background:rgba(16,185,129,0.05);color:#a7f3d0;font-style:italic}
+.alert-box{border-left:3px solid #f59e0b;background:rgba(245,158,11,0.05);color:#fcd34d}
+.conflict-box{border-left:3px solid #ef4444;background:rgba(239,68,68,0.05);color:#fca5a5}
+.purple-box{border-left:3px solid #8b5cf6;background:rgba(139,92,246,0.05);color:#ddd6fe}
+
+/* Evidence list cards */
+.evidence-card{border-top:1px solid #1e293b;padding-top:14px;margin-top:14px}
+.provenance-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.tag-chip{background:#1e293b;color:#94a3b8;font-size:11px;padding:2px 8px;border-radius:4px;font-family:monospace}
+.tag-chip.highlight{background:rgba(16,185,129,0.2);color:#34d399}
+.score-signal{font-size:11px;color:#64748b;margin-top:6px;font-style:italic}
+
+/* Human governance actions */
+.decision-group{display:flex;gap:10px;margin:14px 0}
+.dec-btn{flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;border:1px solid #334155;background:#1e293b;color:#94a3b8;transition:all 0.15s;text-align:center}
+.dec-btn.active-approve{background:#065f46;color:#a7f3d0;border-color:#10b981}
+.dec-btn.active-edit{background:#78350f;color:#fef3c7;border-color:#f59e0b}
+.dec-btn.active-reject{background:#7f1d1d;color:#fecaca;border-color:#ef4444}
+
+.receipt-card{background:rgba(15,23,42,0.8);border:1px solid #334155;border-radius:8px;padding:14px;margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <div class="brand-tag">EVIDENCEDESK / BUILD 0.19</div>
+    <h1>Human Review Workspace</h1>
+    <div class="subtitle">Evidence-backed security questionnaire assistant with human governance</div>
+  </div>
+  <div class="gov-banner">AI RECOMMENDS · HUMAN DECIDES</div>
+</header>
+
+<div class="grid">
+  <!-- LEFT COLUMN: INPUT & PIPELINE CONTROL -->
+  <section class="panel">
+    <h2>1. Questionnaire Input</h2>
+    
+    <label for="workspace_select">Target Workspace Context</label>
+    <select id="workspace_select">
+      <option value="ws_acme_corp" selected>ws_acme_corp (Acme Corporation)</option>
+      <option value="ws_globex_corp">ws_globex_corp (Globex Corporation)</option>
+    </select>
+
+    <div style="margin-top:14px">
+      <label for="question">Security Questionnaire Question</label>
+      <textarea id="question">Who takes the first look at a reported security incident?</textarea>
+      
+      <div class="presets">
+        <button class="preset-btn" onclick="setQ('Who takes the first look at a reported security incident?', 'ws_acme_corp')">Incident Triage (Q21)</button>
+        <button class="preset-btn" onclick="setQ('What safeguards customer information while it moves between systems?', 'ws_acme_corp')">Data in Transit (Q02)</button>
+        <button class="preset-btn" onclick="setQ('What is your retention policy?', 'ws_acme_corp')">Retention (Q13 - AMBIGUOUS)</button>
+        <button class="preset-btn" onclick="setQ('How long are database backups retained?', 'ws_acme_corp')">DB Retention (Q15 - CONFLICTING)</button>
+        <button class="preset-btn" onclick="setQ('What is your SLA for resolving high-severity security incidents?', 'ws_acme_corp')">SLA (Q12 - INSUFFICIENT)</button>
+        <button class="preset-btn" onclick="setQ('Where is production infrastructure hosted?', 'ws_globex_corp')">Globex Infra (Cross-WS)</button>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <label>Retrieval & Reranking Pipeline</label>
+      <div class="method-group">
+        <label><input type="radio" name="method" value="hybrid" checked> Hybrid (BM25 + Dense + RRF + Reranker)</label>
+        <label><input type="radio" name="method" value="bm25"> BM25 Only</label>
+        <label><input type="radio" name="method" value="embedding"> Dense Only</label>
+      </div>
+    </div>
+
+    <button id="btn_run" class="btn-primary">Run Evidence Pipeline</button>
+    <button id="btn_evaluate" class="btn-secondary">Run Development Tests</button>
+
+    <div style="margin-top:20px; font-size:12px; color:#64748b">
+      <strong>Architecture Status:</strong> Retrieval & Reranker FROZEN · SLM Reasoning FROZEN · Provenance Enabled
+    </div>
+  </section>
+
+  <!-- RIGHT COLUMN: AI RECOMMENDATION & HUMAN DECISION -->
+  <section class="panel" aria-live="polite">
+    <h2>2. AI Recommendation & Human Governance</h2>
+    <div id="result">
+      <div style="color:#64748b; padding:20px 0; text-align:center">
+        Submit a security questionnaire question to run retrieval, reranking, and SLM evidence reasoning.
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel" style="margin-top:24px">
+  <h2>Synthetic Corpus Documents (Workspace Provenance)</h2>
+  <div id="sources" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px"></div>
+</section>
+</main>
+
 <script>
-const el=id=>document.getElementById(id);
-function text(parent,tag,value){const node=document.createElement(tag);node.textContent=value;parent.appendChild(node);return node;}
-async function request(url,options){const response=await fetch(url,options);if(!response.ok)throw new Error('Request failed: '+response.status+' '+await response.text());return response.json();}
-el('review').onclick=async()=>{const button=el('review');button.disabled=true;el('result').textContent='Retrieving…';const method=document.querySelector('input[name="method"]:checked').value;try{const data=await request('/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:el('question').value,method:method})});const target=el('result');target.replaceChildren();text(target,'div',data.status.replaceAll('_',' ')).className='status';if(data.reason){text(target,'p','Reason: '+data.reason).style.fontWeight='bold';}if(data.clarification_question){text(target,'p','Clarification needed: '+data.clarification_question).style.color='#ffb86c';}text(target,'p',data.warning);for(const item of data.evidence){const block=document.createElement('article');text(block,'small','Workspace: '+item.workspace_id+' · Document: '+item.document_id+' · Version: '+item.version+' · Chunk: '+item.chunk_id);text(block,'p',item.excerpt);let scoreText=item.rrf_score!==undefined?'RRF score: '+item.rrf_score:item.bm25_score!==undefined?'BM25 score: '+item.bm25_score:item.lexical_score!==undefined?'Lexical overlap: '+item.lexical_score:'Embedding similarity: '+item.similarity_score;text(block,'small',scoreText+' — not confidence');target.appendChild(block);}}catch(error){el('result').textContent=error.message;}finally{button.disabled=false;}};
-el('evaluate').onclick=async()=>{el('evaluate').disabled=true;try{const data=await request('/evaluate');el('result').replaceChildren();text(el('result'),'pre',JSON.stringify(data,null,2));}catch(error){el('result').textContent=error.message;}finally{el('evaluate').disabled=false;}};
-request('/documents').then(docs=>{for(const doc of docs){const article=document.createElement('article');text(article,'small',doc.id+' · '+doc.title);text(article,'p',doc.text);el('sources').appendChild(article);}}).catch(error=>{el('sources').textContent=error.message;});
-</script></body></html>'''
+const el = id => document.getElementById(id);
+
+function setQ(q, ws) {
+  el('question').value = q;
+  if(ws) el('workspace_select').value = ws;
+}
+
+async function request(url, options) {
+  const response = await fetch(url, options);
+  if(!response.ok) throw new Error('API Error: ' + response.status + ' ' + await response.text());
+  return response.json();
+}
+
+let currentReviewData = null;
+let selectedDecision = 'APPROVE';
+
+el('btn_run').onclick = async () => {
+  const btn = el('btn_run');
+  btn.disabled = true;
+  el('result').innerHTML = '<div style="color:#34d399; font-weight:600; padding:20px 0">Executing retrieval, RRF fusion, Cross-Encoder reranking, and SLM evidence reasoning...</div>';
+
+  const method = document.querySelector('input[name="method"]:checked').value;
+  const workspace_id = el('workspace_select').value;
+  const question = el('question').value.trim();
+
+  try {
+    const data = await request('/review', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question, method, workspace_id})
+    });
+    currentReviewData = data;
+    renderReviewWorkspace(data);
+  } catch(err) {
+    el('result').innerHTML = '<div style="color:#ef4444">Error: ' + err.message + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+function renderReviewWorkspace(data) {
+  const target = el('result');
+  target.replaceChildren();
+
+  // 1. Status Badge
+  const statusDiv = document.createElement('div');
+  statusDiv.style.display = 'flex';
+  statusDiv.style.alignItems = 'center';
+  statusDiv.style.justifyContent = 'space-between';
+  statusDiv.style.marginBottom = '12px';
+
+  const badge = document.createElement('span');
+  badge.className = 'badge badge-' + data.status;
+  badge.textContent = data.status.replace(/_/g, ' ');
+  statusDiv.appendChild(badge);
+
+  const wsLabel = document.createElement('span');
+  wsLabel.style.fontSize = '12px';
+  wsLabel.style.color = '#94a3b8';
+  wsLabel.textContent = 'Workspace: ' + (data.workspace_id || 'ws_acme_corp');
+  statusDiv.appendChild(wsLabel);
+  target.appendChild(statusDiv);
+
+  // 2. AI Reasoning Box
+  if (data.reason) {
+    const reasonBox = document.createElement('div');
+    reasonBox.className = 'box';
+    reasonBox.innerHTML = '<div class="box-title">AI Evidence Reasoning</div><div>' + escapeHtml(data.reason) + '</div>';
+    target.appendChild(reasonBox);
+  }
+
+  // 3. Verbatim Evidence Quote Box (if ANSWERABLE)
+  if (data.status === 'ANSWERABLE' && data.evidence_quote) {
+    const quoteBox = document.createElement('div');
+    quoteBox.className = 'box quote-box';
+    quoteBox.innerHTML = '<div class="box-title" style="color:#34d399">Verbatim Supporting Quote</div><div>"' + escapeHtml(data.evidence_quote) + '"</div>';
+    target.appendChild(quoteBox);
+  }
+
+  // 4. Special State Notice Cards
+  if (data.status === 'AMBIGUOUS') {
+    const alertBox = document.createElement('div');
+    alertBox.className = 'box alert-box';
+    alertBox.innerHTML = '<div class="box-title" style="color:#fbbf24">Underspecified Question Notice</div><div>Question scope is ambiguous. Clarification required before selecting policy response.</div>';
+    target.appendChild(alertBox);
+  } else if (data.status === 'INSUFFICIENT_EVIDENCE') {
+    const purpleBox = document.createElement('div');
+    purpleBox.className = 'box purple-box';
+    purpleBox.innerHTML = '<div class="box-title" style="color:#c084fc">Safe Abstention Notice</div><div>The corpus contains no evidence to establish this claim. AI has abstained. Do not invent missing facts.</div>';
+    target.appendChild(purpleBox);
+  } else if (data.status === 'CONFLICTING') {
+    const conflictBox = document.createElement('div');
+    conflictBox.className = 'box conflict-box';
+    conflictBox.innerHTML = '<div class="box-title" style="color:#f87171">Conflicting Evidence Warning</div><div>Multiple policy statements give differing values for this fact. Human reviewer must resolve conflict.</div>';
+    target.appendChild(conflictBox);
+  }
+
+  // 5. Supporting Evidence List (Provenance Explorer)
+  const evHeader = document.createElement('div');
+  evHeader.style.fontSize = '14px';
+  evHeader.style.fontWeight = '700';
+  evHeader.style.marginTop = '20px';
+  evHeader.style.marginBottom = '8px';
+  evHeader.style.color = '#f1f5f9';
+  evHeader.textContent = 'Supporting Evidence Chunks (' + (data.evidence ? data.evidence.length : 0) + ')';
+  target.appendChild(evHeader);
+
+  if (data.evidence && data.evidence.length > 0) {
+    for (const item of data.evidence) {
+      const card = document.createElement('div');
+      card.className = 'evidence-card';
+
+      const isQuoteMatch = data.evidence_quote && item.excerpt.includes(data.evidence_quote);
+      
+      let tagsHtml = `
+        <div class="provenance-tags">
+          <span class="tag-chip ${isQuoteMatch ? 'highlight' : ''}">${escapeHtml(item.chunk_id)}</span>
+          <span class="tag-chip">Doc: ${escapeHtml(item.document_id)}</span>
+          <span class="tag-chip">Version: ${escapeHtml(item.version)}</span>
+          <span class="tag-chip">Workspace: ${escapeHtml(item.workspace_id)}</span>
+        </div>
+      `;
+
+      let scoreText = '';
+      if (item.rrf_score !== undefined && item.reranker_score !== undefined) {
+        scoreText = `RRF score: ${item.rrf_score} · Reranker score: ${item.reranker_score}`;
+      } else if (item.bm25_score !== undefined) {
+        scoreText = `BM25 score: ${item.bm25_score}`;
+      } else if (item.similarity_score !== undefined) {
+        scoreText = `Embedding similarity: ${item.similarity_score}`;
+      } else if (item.lexical_score !== undefined) {
+        scoreText = `Lexical score: ${item.lexical_score}`;
+      }
+
+      card.innerHTML = tagsHtml +
+        '<div style="color:#e2e8f0; font-size:13px; margin:4px 0">' + escapeHtml(item.excerpt) + '</div>' +
+        '<div class="score-signal">' + scoreText + ' — ranking signals (not confidence scores)</div>';
+
+      target.appendChild(card);
+    }
+  }
+
+  // 6. Human Review Governance Controls
+  const govPanel = document.createElement('div');
+  govPanel.style.marginTop = '24px';
+  govPanel.style.paddingTop = '16px';
+  govPanel.style.borderTop = '2px solid #1e293b';
+
+  govPanel.innerHTML = `
+    <div style="font-size:14px; font-weight:700; color:#f1f5f9; margin-bottom:10px">
+      3. Human Reviewer Governance Action
+    </div>
+    
+    <div class="decision-group">
+      <div id="btn_dec_approve" class="dec-btn active-approve" onclick="selectDecision('APPROVE')">APPROVE</div>
+      <div id="btn_dec_edit" class="dec-btn" onclick="selectDecision('EDIT')">EDIT RESPONSE</div>
+      <div id="btn_dec_reject" class="dec-btn" onclick="selectDecision('REJECT')">REJECT</div>
+    </div>
+
+    <div id="edit_box" style="display:none; margin-bottom:12px">
+      <label for="edited_text">Customized Compliance Answer / Proposed Text</label>
+      <textarea id="edited_text">${escapeHtml(data.evidence_quote || data.candidate_excerpt || '')}</textarea>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <label for="reviewer_notes">Compliance Reviewer Audit Notes</label>
+      <textarea id="reviewer_notes" placeholder="Enter compliance reviewer justification, policy notes, or manual override reason..."></textarea>
+    </div>
+
+    <button id="btn_submit_dec" class="btn-primary" style="width:100%" onclick="submitDecision()">Record Final Reviewer Decision</button>
+    <div id="receipt_container"></div>
+  `;
+
+  target.appendChild(govPanel);
+}
+
+function selectDecision(type) {
+  selectedDecision = type;
+  const btnApprove = el('btn_dec_approve');
+  const btnEdit = el('btn_dec_edit');
+  const btnReject = el('btn_dec_reject');
+  const editBox = el('edit_box');
+
+  btnApprove.className = 'dec-btn' + (type === 'APPROVE' ? ' active-approve' : '');
+  btnEdit.className = 'dec-btn' + (type === 'EDIT' ? ' active-edit' : '');
+  btnReject.className = 'dec-btn' + (type === 'REJECT' ? ' active-reject' : '');
+
+  if (editBox) {
+    editBox.style.display = type === 'EDIT' ? 'block' : 'none';
+  }
+}
+
+async function submitDecision() {
+  if (!currentReviewData) return;
+
+  const notes = el('reviewer_notes') ? el('reviewer_notes').value : '';
+  const editedText = el('edited_text') ? el('edited_text').value : '';
+
+  const payload = {
+    question: currentReviewData.question,
+    workspace_id: currentReviewData.workspace_id || el('workspace_select').value,
+    ai_status: currentReviewData.status,
+    decision: selectedDecision,
+    edited_response: editedText,
+    reviewer_notes: notes,
+    selected_chunk_ids: currentReviewData.evidence_chunk_ids || []
+  };
+
+  try {
+    const receipt = await request('/review/decision', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    const container = el('receipt_container');
+    container.innerHTML = `
+      <div class="receipt-card">
+        <div style="color:#10b981; font-weight:700; font-size:13px; margin-bottom:6px">
+          DECISION RECORDED · ${receipt.decision}
+        </div>
+        <div style="font-size:12px; color:#94a3b8">
+          Timestamp: ${receipt.timestamp}<br>
+          Question: ${escapeHtml(receipt.question)}<br>
+          AI Status: ${receipt.ai_status}<br>
+          Reviewer Notes: ${escapeHtml(receipt.reviewer_notes || 'None')}<br>
+          ${receipt.decision === 'EDIT' ? 'Approved Text: "' + escapeHtml(receipt.final_response) + '"' : ''}
+        </div>
+      </div>
+    `;
+  } catch(err) {
+    alert('Failed to record decision: ' + err.message);
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+el('btn_evaluate').onclick = async () => {
+  const btn = el('btn_evaluate');
+  btn.disabled = true;
+  try {
+    const data = await request('/evaluate');
+    el('result').innerHTML = '<pre style="background:#090d16; padding:16px; border-radius:8px; color:#34d399">' + JSON.stringify(data, null, 2) + '</pre>';
+  } catch(err) {
+    el('result').innerHTML = '<div style="color:#ef4444">' + err.message + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+request('/documents').then(docs => {
+  const container = el('sources');
+  container.replaceChildren();
+  for(const doc of docs) {
+    const art = document.createElement('article');
+    art.style.background = '#090d16';
+    art.style.padding = '12px';
+    art.style.borderRadius = '8px';
+    art.style.border = '1px solid #1e293b';
+    art.innerHTML = '<div style="font-size:11px; color:#10b981; font-weight:700">' + escapeHtml(doc.id) + ' · ' + escapeHtml(doc.title) + ' (v' + escapeHtml(doc.version) + ') [' + escapeHtml(doc.workspace_id) + ']</div><div style="font-size:12px; color:#cbd5e1; margin-top:4px">' + escapeHtml(doc.text) + '</div>';
+    container.appendChild(art);
+  }
+}).catch(err => {
+  el('sources').textContent = err.message;
+});
+</script>
+</body>
+</html>
+'''
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -641,3 +1063,4 @@ if __name__ == "__main__":
     else:
         import uvicorn
         uvicorn.run(app, host="127.0.0.1", port=8000)
+
