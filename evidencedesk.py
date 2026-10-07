@@ -14,7 +14,7 @@ from collections import Counter
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer, util, CrossEncoder
 import ollama
 from rank_bm25 import BM25Okapi
 from qdrant_client import QdrantClient, models
@@ -44,6 +44,9 @@ app = FastAPI(title="EvidenceDesk baseline", version="0.1.0")
 # --- EMBEDDING RETRIEVER (Day 4) ---
 print("Loading embedding model (this may take a moment)...")
 embed_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
+print("Loading reranker model (this may take a moment)...")
+reranker_model = CrossEncoder('BAAI/bge-reranker-large')
 
 PASSAGES = []
 for doc in DOCUMENTS:
@@ -154,6 +157,21 @@ def rrf_fuse(bm25_results, embedding_results, k=60, top_k=10):
         
     return sorted(fused_list, key=lambda x: x["rrf_score"], reverse=True)[:top_k]
 
+def rerank_evidence(query, candidates, top_k=5):
+    if not candidates:
+        return []
+    
+    pairs = [(query, p["excerpt"]) for p in candidates]
+    scores = reranker_model.predict(pairs)
+    
+    reranked = []
+    for i, p in enumerate(candidates):
+        passage = p.copy()
+        passage["reranker_score"] = round(float(scores[i]), 4)
+        reranked.append(passage)
+        
+    return sorted(reranked, key=lambda x: x["reranker_score"], reverse=True)[:top_k]
+
 def analyze_evidence(question, retrieved_evidence):
     evidence_text = "\n".join([f"[{doc['document_id']}] {doc['excerpt']}" for doc in retrieved_evidence])
     
@@ -239,9 +257,10 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp"):
     if method == "hybrid":
         bm25_results = retrieve_by_bm25(question, workspace_id, top_k=20)
         emb_results = retrieve_by_embedding(question, workspace_id, top_k=20)
-        evidence = rrf_fuse(bm25_results, emb_results, k=60, top_k=10)
+        rrf_candidates = rrf_fuse(bm25_results, emb_results, k=60, top_k=10)
+        evidence = rerank_evidence(question, rrf_candidates, top_k=5)
         llm_analysis = analyze_evidence(question, evidence)
-        mode = "hybrid_rrf_reasoning"
+        mode = "hybrid_rrf_reranked_reasoning"
     elif method == "bm25":
         evidence = retrieve_by_bm25(question, workspace_id, top_k=3)
         llm_analysis = analyze_evidence(question, evidence)

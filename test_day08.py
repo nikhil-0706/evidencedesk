@@ -43,7 +43,12 @@ def run_tests():
         print(f"Reason: {reason}")
         print("Evidence Ranks:")
         for i, e in enumerate(evidence):
-            print(f"  {i+1}. [{e['document_id']}] {e['excerpt']} (RRF: {e.get('rrf_score')})")
+            rrf = e.get('rrf_score', 'N/A')
+            rerank = e.get('reranker_score')
+            if rerank is not None:
+                print(f"  {i+1}. [{e['document_id']}] {e['excerpt']} (RRF: {rrf}, Reranker: {rerank})")
+            else:
+                print(f"  {i+1}. [{e['document_id']}] {e['excerpt']} (RRF: {rrf})")
             
         print("\n" + "="*40 + "\n")
 
