@@ -177,13 +177,13 @@ def analyze_evidence(question, retrieved_evidence):
     
     prompt = f"""You are a security questionnaire review assistant. 
 Your job is to strictly classify the interaction based ONLY on the user question and the retrieved evidence.
-DO NOT use any external knowledge. DO NOT generate unsupported answers.
+DO NOT use any external knowledge to generate facts. You MUST use your knowledge to recognize technical synonyms (e.g., 'in transit' means 'moves between systems'). DO NOT generate unsupported answers.
 
 Classify the status as ONE of the following:
-1. ANSWERABLE: At least one of the retrieved passages contains the information requested by the user. (Ignore irrelevant passages. You may use basic language comprehension to recognize synonyms or standard terms, e.g. knowing 'encrypted' answers a question about 'encryption'.)
-2. AMBIGUOUS: The question itself is underspecified or vague (e.g. if the user asks "What is your retention policy?" but there are multiple types of retention, or it's not clear which they mean).
-3. INSUFFICIENT_EVIDENCE: None of the retrieved passages contain information that addresses the question.
-4. CONFLICTING_EVIDENCE: Two or more retrieved policy passages specify contradictory facts (e.g. one says 30 days, another says 90 days).
+1. ANSWERABLE: At least one of the retrieved passages contains the information requested by the user. If the passage explicitly addresses the topic of the question (e.g., using synonyms like 'in transit' for 'moves between systems', or 'restore procedures' for 'verify backups'), it is ANSWERABLE. (Note: if there are multiple passages with contradictory answers to the question, choose CONFLICTING_EVIDENCE instead).
+2. AMBIGUOUS: The question itself is underspecified or vague (e.g., asking "What is your retention policy?" when the evidence lists multiple types). Do NOT output AMBIGUOUS if one of the passages provides a direct answer to a reasonable interpretation of the user's question.
+3. INSUFFICIENT_EVIDENCE: None of the retrieved passages contain information that addresses the question. Before choosing this, carefully consider if the evidence answers the question using different phrasing (e.g., 'in transit' means 'moves between systems').
+4. CONFLICTING_EVIDENCE: Two or more retrieved policy passages specify materially different facts that could both answer the question (e.g., if one says 'backup retention is 30 days' and another says 'database backup retention is 90 days', and the user asks about database backup retention, you MUST choose CONFLICTING_EVIDENCE because the general policy contradicts the specific one).
 
 Output your classification in strict JSON format:
 {{
@@ -209,6 +209,13 @@ Evidence:
 [SEC-001] Access permissions are reviewed quarterly.
 [SEC-004] Security incidents are triaged by the on-call engineer.
 JSON: {{"status": "ANSWERABLE", "reason": "The evidence directly states that database backups are created daily."}}
+
+Example 4:
+Question: "How is network traffic secured?"
+Evidence: 
+[SEC-010] Network traffic is secured using IPsec.
+JSON: {{"status": "ANSWERABLE", "reason": "The evidence explicitly states that network traffic is secured using IPsec."}}
+
 
 Now, classify this interaction:
 
@@ -253,13 +260,31 @@ def retrieve(question, workspace_id):
             ranked.append(p)
     return sorted(ranked, key=lambda item: item["lexical_score"], reverse=True)[:3]
 
-def review(question, method="hybrid", workspace_id="ws_acme_corp"):
+def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
     if method == "hybrid":
         bm25_results = retrieve_by_bm25(question, workspace_id, top_k=20)
         emb_results = retrieve_by_embedding(question, workspace_id, top_k=20)
         rrf_candidates = rrf_fuse(bm25_results, emb_results, k=60, top_k=10)
         evidence = rerank_evidence(question, rrf_candidates, top_k=5)
+        
+        if debug:
+            print("\n=== RRF TOP-10 ===")
+            for i, p in enumerate(rrf_candidates, 1):
+                print(f"rank={i} chunk_id={p['chunk_id']} document_id={p['document_id']} rrf_score={p.get('rrf_score')} excerpt=\"{p['excerpt']}\"")
+                
+            print("\n=== CROSS-ENCODER TOP-5 ===")
+            for i, p in enumerate(evidence, 1):
+                print(f"rank={i} chunk_id={p['chunk_id']} document_id={p['document_id']} reranker_score={p.get('reranker_score')} rrf_score={p.get('rrf_score')} excerpt=\"{p['excerpt']}\"")
+                
+            evidence_text = "\n".join([f"[{doc['document_id']}] {doc['excerpt']}" for doc in evidence])
+            print(f"\n=== FINAL REASONING INPUT ===\nQuestion: {question}\nEvidence:\n{evidence_text}")
+            
         llm_analysis = analyze_evidence(question, evidence)
+        
+        if debug:
+            print("\n=== FINAL CLASSIFICATION ===")
+            print(json.dumps(llm_analysis, indent=2))
+            
         mode = "hybrid_rrf_reranked_reasoning"
     elif method == "bm25":
         evidence = retrieve_by_bm25(question, workspace_id, top_k=3)
