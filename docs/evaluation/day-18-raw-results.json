@@ -1,0 +1,40 @@
+{
+  "day": 18,
+  "date": "2026-10-08",
+  "audit_type": "Security & Integration Verification of Workspace Isolation and Provenance",
+  "summary": {
+    "total_tests": 15,
+    "passed": 15,
+    "failed": 0,
+    "cross_workspace_leaks": 0,
+    "code_changes_required": false,
+    "slm_reasoning_frozen": true
+  },
+  "test_matrix": [
+    { "test_id": 1, "name": "Acme excludes Globex evidence", "result": "PASS", "description": "SEC-G001 excluded from all stages when querying ws_acme_corp" },
+    { "test_id": 2, "name": "Globex retrieves own data", "result": "PASS", "description": "SEC-G001 successfully retrieved for ws_globex_corp" },
+    { "test_id": 3, "name": "Cross-workspace negative test", "result": "PASS", "description": "Identical query yields workspace-isolated result sets" },
+    { "test_id": 4, "name": "Hybrid retrieval isolation", "result": "PASS", "description": "Top-5 candidates belong 100% to requested workspace" },
+    { "test_id": 5, "name": "RRF isolation", "result": "PASS", "description": "Inputs entering RRF fusion are pre-filtered by workspace" },
+    { "test_id": 6, "name": "Reranker isolation", "result": "PASS", "description": "Cross-Encoder candidate lists strictly scoped pre- and post-rerank" },
+    { "test_id": 7, "name": "SLM evidence isolation", "result": "PASS", "description": "Evidence passed to SLM contains only target workspace chunks" },
+    { "test_id": 8, "name": "Provenance preservation", "result": "PASS", "description": "chunk_id, workspace_id, document_id, title, version, excerpt survive intact" },
+    { "test_id": 9, "name": "Version preservation", "result": "PASS", "description": "Version metadata (e.g. 2026-01) attached and unaltered through pipeline" },
+    { "test_id": 10, "name": "Chunk identity stability", "result": "PASS", "description": "chunk_id values remain stable from index to review payload" },
+    { "test_id": 11, "name": "Workspace field persistence", "result": "PASS", "description": "workspace_id field present across all intermediate dictionaries" },
+    { "test_id": 12, "name": "Wrong workspace negative test", "result": "PASS", "description": "Foreign candidate explicitly rejected if injected into filtering" },
+    { "test_id": 13, "name": "Missing/unknown workspace behavior", "result": "PASS", "description": "Empty or unknown workspace produces zero evidence / safe abstention" },
+    { "test_id": 14, "name": "Workspace filter bypass attempt", "result": "PASS", "description": "Semantic similarity of foreign workspace document cannot override filter" },
+    { "test_id": 15, "name": "Review UI/API provenance", "result": "PASS", "description": "Review endpoint payload contains complete provenance metadata" }
+  ],
+  "invariants_verified": [
+    "INVARIANT 1: Every final evidence result belongs to requested workspace.",
+    "INVARIANT 2: Every SLM evidence chunk belongs to requested workspace.",
+    "INVARIANT 3: Workspace filtering occurs BEFORE RRF.",
+    "INVARIANT 4: Cross-Encoder reranking cannot introduce a new workspace.",
+    "INVARIANT 5: Provenance metadata survives retrieval and reranking.",
+    "INVARIANT 6: Version metadata remains attached to source document/chunk.",
+    "INVARIANT 7: Missing/invalid workspace context does not cause global retrieval.",
+    "INVARIANT 8: Filtering enforced at retrieval layer, not UI-only."
+  ]
+}
