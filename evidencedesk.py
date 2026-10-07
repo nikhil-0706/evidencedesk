@@ -602,7 +602,10 @@ def evaluate():
     rows = []
     for case in CASES:
         result = review(case["question"])
-        actual = result["evidence"][0]["document_id"] if result["candidate_excerpt"] else None
+        if result.get("status") == "INSUFFICIENT_EVIDENCE":
+            actual = None
+        else:
+            actual = result["evidence"][0]["document_id"] if (result.get("evidence") and result.get("candidate_excerpt")) else None
         rows.append({**case, "actual": actual, "pass": actual == case["expected"]})
     return {"suite": "synthetic development smoke tests", "passed": sum(row["pass"] for row in rows),
             "total": len(rows), "cases": rows,
