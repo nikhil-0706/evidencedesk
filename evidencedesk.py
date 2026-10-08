@@ -10,16 +10,34 @@ Synthetic documents only. Do not expose this development server publicly.
 import json
 import re
 import sys
+import os
 from collections import Counter
 from typing import List, Literal, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 from sentence_transformers import SentenceTransformer, util, CrossEncoder
-import ollama
+from ollama import Client as OllamaClient
 from rank_bm25 import BM25Okapi
 from qdrant_client import QdrantClient, models
 import uuid
+
+from dotenv import load_dotenv
+load_dotenv()
+
+
+# Configuration / Environment Variables
+QDRANT_PATH = os.getenv("QDRANT_PATH", "qdrant_db")
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "evidencedesk")
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+RERANKER_MODEL_NAME = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-large")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+APP_HOST = os.getenv("APP_HOST", "127.0.0.1")
+APP_PORT = int(os.getenv("APP_PORT", "8000"))
+
+ollama_client = OllamaClient(host=OLLAMA_BASE_URL)
+
 
 
 # ---------------------------------------------------------------------------
@@ -58,11 +76,19 @@ THRESHOLD = 0.25  # Heuristic lexical coverage, NOT calibrated confidence.
 app = FastAPI(title="EvidenceDesk baseline", version="0.1.0")
 
 # --- EMBEDDING RETRIEVER (Day 4) ---
-print("Loading embedding model (this may take a moment)...")
-embed_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+try:
+    print(f"Loading embedding model {EMBEDDING_MODEL_NAME} (this may take a moment)...")
+    embed_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+except Exception as e:
+    print(f"Error loading embedding model: {e}")
+    sys.exit(1)
 
-print("Loading reranker model (this may take a moment)...")
-reranker_model = CrossEncoder('BAAI/bge-reranker-large')
+try:
+    print(f"Loading reranker model {RERANKER_MODEL_NAME} (this may take a moment)...")
+    reranker_model = CrossEncoder(RERANKER_MODEL_NAME)
+except Exception as e:
+    print(f"Error loading reranker model: {e}")
+    sys.exit(1)
 
 PASSAGES = []
 for doc in DOCUMENTS:
@@ -77,15 +103,19 @@ for doc in DOCUMENTS:
             "excerpt": sentence.strip()
         })
 
-print("Initializing Qdrant and indexing policy passages...")
-qdrant = QdrantClient(path="qdrant_db")
+try:
+    print(f"Initializing Qdrant at {QDRANT_PATH} and indexing policy passages...")
+    qdrant = QdrantClient(path=QDRANT_PATH)
+except Exception as e:
+    print(f"Error initializing Qdrant: {e}")
+    sys.exit(1)
 
 from document_ingestion import MultiDocumentCorpus
 multi_doc_corpus = MultiDocumentCorpus(qdrant_client=qdrant, embed_model=embed_model)
 
-if not qdrant.collection_exists("evidencedesk"):
+if not qdrant.collection_exists(QDRANT_COLLECTION):
     qdrant.create_collection(
-        collection_name="evidencedesk",
+        collection_name=QDRANT_COLLECTION,
         vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE),
     )
 
@@ -102,7 +132,7 @@ for passage in PASSAGES:
     )
 
 qdrant.upsert(
-    collection_name="evidencedesk",
+    collection_name=QDRANT_COLLECTION,
     points=points
 )
 
@@ -132,19 +162,23 @@ def retrieve_by_bm25(question, workspace_id, top_k=20):
 
 def retrieve_by_embedding(question, workspace_id, top_k=20):
     query_vector = embed_model.encode(question).tolist()
-    search_result = qdrant.query_points(
-        collection_name="evidencedesk",
-        query=query_vector,
-        query_filter=models.Filter(
-            must=[
-                models.FieldCondition(
-                    key="workspace_id",
-                    match=models.MatchValue(value=workspace_id),
-                )
-            ]
-        ),
-        limit=top_k
-    )
+    try:
+        search_result = qdrant.query_points(
+            collection_name=QDRANT_COLLECTION,
+            query=query_vector,
+            query_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="workspace_id",
+                        match=models.MatchValue(value=workspace_id),
+                    )
+                ]
+            ),
+            limit=top_k
+        )
+    except Exception as e:
+        print(f"Qdrant query failed: {e}")
+        return []
 
     ranked = []
     for hit in search_result.points:
@@ -493,8 +527,8 @@ def analyze_evidence(question: str, retrieved_evidence: list) -> dict:
     prompt = _REASONING_PROMPT.format(question=question, evidence_text=evidence_text)
 
     try:
-        response = ollama.chat(
-            model="qwen2.5:3b",
+        response = ollama_client.chat(
+            model=OLLAMA_MODEL,
             messages=[{"role": "user", "content": prompt}],
             format="json",
             options={"temperature": 0.0},
@@ -625,7 +659,24 @@ def evaluate():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "mode": "local_baseline"}
+    status = {
+        "status": "ok",
+        "components": {
+            "application": "ok",
+            "qdrant": "ok" if qdrant else "unavailable",
+            "embedding_model": "ok" if embed_model else "unavailable",
+            "reranker_model": "ok" if reranker_model else "unavailable",
+            "llm": "ok"
+        }
+    }
+    try:
+        # Lightweight check if Ollama is responsive
+        ollama_client.list()
+    except Exception:
+        status["components"]["llm"] = "unavailable"
+        status["status"] = "degraded"
+        
+    return status
 
 @app.get("/documents")
 def documents():
@@ -639,18 +690,28 @@ async def upload_endpoint(
 ):
     if not files:
         raise HTTPException(status_code=422, detail="At least one file must be selected for upload.")
+    if not workspace_id:
+        raise HTTPException(status_code=422, detail="Workspace ID is required.")
 
     file_tuples = []
-    for f in files:
-        content = await f.read()
-        file_tuples.append((f.filename, content))
+    try:
+        for f in files:
+            content = await f.read()
+            file_tuples.append((f.filename, content))
+    except Exception as e:
+        print(f"Error reading uploaded file: {e}")
+        raise HTTPException(status_code=400, detail="Failed to read uploaded files.")
 
-    summary = multi_doc_corpus.ingest_multiple_documents(
-        files=file_tuples,
-        workspace_id=workspace_id,
-        version=version,
-    )
-    return summary
+    try:
+        summary = multi_doc_corpus.ingest_multiple_documents(
+            files=file_tuples,
+            workspace_id=workspace_id,
+            version=version,
+        )
+        return summary
+    except Exception as e:
+        print(f"Error during document ingestion: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during document ingestion.")
 
 @app.get("/indexed-documents")
 def indexed_documents_endpoint(workspace_id: Optional[str] = None):
@@ -660,9 +721,17 @@ def indexed_documents_endpoint(workspace_id: Optional[str] = None):
 
 @app.post("/review")
 def review_endpoint(body: ReviewRequest):
-    if len(body.question.strip()) < 3:
+    if not body.question or len(body.question.strip()) < 3:
         raise HTTPException(status_code=422, detail="Enter at least three non-whitespace characters.")
-    return review(body.question.strip(), body.method, body.workspace_id)
+    if not body.workspace_id:
+        raise HTTPException(status_code=422, detail="Workspace ID is required.")
+        
+    try:
+        return review(body.question.strip(), body.method, body.workspace_id)
+    except Exception as e:
+        # Hide raw tracebacks but log them on server
+        print(f"Error in review endpoint: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during review processing.")
 
 @app.post("/review/decision")
 def decision_endpoint(body: DecisionRequest):
@@ -816,7 +885,7 @@ textarea{min-height:100px;resize:vertical}
 </div>
 
 <section class="panel" style="margin-top:24px">
-  <h2>Document Ingestion (PDF · DOCX · TXT)</h2>
+  <h2>Upload Security Documents</h2>
   <div style="font-size:13px; color:#94a3b8; margin-bottom:16px">
     Upload custom security policy documents into your active workspace context.
   </div>
@@ -1112,7 +1181,7 @@ function renderReviewWorkspace(data) {
     </div>
 
     <div id="edit_box" style="display:none; margin-bottom:12px">
-      <label for="edited_text">Customized Compliance Answer / Proposed Text</label>
+      <label for="edited_text">Final Reviewer Response</label>
       <textarea id="edited_text">${escapeHtml(data.evidence_quote || data.candidate_excerpt || '')}</textarea>
     </div>
 
@@ -1219,5 +1288,5 @@ if __name__ == "__main__":
         print(json.dumps(evaluate(), indent=2))
     else:
         import uvicorn
-        uvicorn.run(app, host="127.0.0.1", port=8000)
+        uvicorn.run(app, host=APP_HOST, port=APP_PORT)
 

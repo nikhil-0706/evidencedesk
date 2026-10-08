@@ -32,6 +32,7 @@ TEST_FILES = [
     "test_day19.py",
     "test_day19_5.py",
     "test_day19_75.py",
+    "test_day20.py",
 ]
 
 
