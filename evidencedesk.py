@@ -12,7 +12,7 @@ import re
 import sys
 from collections import Counter
 from typing import List, Literal, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, ValidationError
 from sentence_transformers import SentenceTransformer, util, CrossEncoder
@@ -80,6 +80,9 @@ for doc in DOCUMENTS:
 print("Initializing Qdrant and indexing policy passages...")
 qdrant = QdrantClient(path="qdrant_db")
 
+from document_ingestion import MultiDocumentCorpus
+multi_doc_corpus = MultiDocumentCorpus(qdrant_client=qdrant, embed_model=embed_model)
+
 if not qdrant.collection_exists("evidencedesk"):
     qdrant.create_collection(
         collection_name="evidencedesk",
@@ -121,6 +124,10 @@ def retrieve_by_bm25(question, workspace_id, top_k=20):
                 p = passage.copy()
                 p["bm25_score"] = round(float(score), 4)
                 ranked.append(p)
+
+    md_hits = multi_doc_corpus.retrieve_bm25(question, workspace_id, top_k=top_k)
+    ranked.extend(md_hits)
+
     return sorted(ranked, key=lambda x: x["bm25_score"], reverse=True)[:top_k]
 
 def retrieve_by_embedding(question, workspace_id, top_k=20):
@@ -138,14 +145,19 @@ def retrieve_by_embedding(question, workspace_id, top_k=20):
         ),
         limit=top_k
     )
-    
+
     ranked = []
     for hit in search_result.points:
         passage = hit.payload.copy()
         passage["similarity_score"] = round(float(hit.score), 4)
         ranked.append(passage)
-        
-    return ranked
+
+    md_hits = multi_doc_corpus.retrieve_embedding(question, workspace_id, top_k=top_k)
+    ranked.extend(md_hits)
+
+    return sorted(ranked, key=lambda x: x["similarity_score"], reverse=True)[:top_k]
+
+
 
 def rrf_fuse(bm25_results, embedding_results, k=60, top_k=10):
     rrf_scores = {}
@@ -619,6 +631,33 @@ def health():
 def documents():
     return DOCUMENTS
 
+@app.post("/upload")
+async def upload_endpoint(
+    files: List[UploadFile] = File(...),
+    workspace_id: str = Form("ws_acme_corp"),
+    version: str = Form("2026-01"),
+):
+    if not files:
+        raise HTTPException(status_code=422, detail="At least one file must be selected for upload.")
+
+    file_tuples = []
+    for f in files:
+        content = await f.read()
+        file_tuples.append((f.filename, content))
+
+    summary = multi_doc_corpus.ingest_multiple_documents(
+        files=file_tuples,
+        workspace_id=workspace_id,
+        version=version,
+    )
+    return summary
+
+@app.get("/indexed-documents")
+def indexed_documents_endpoint(workspace_id: Optional[str] = None):
+    return multi_doc_corpus.list_documents(workspace_id=workspace_id)
+
+
+
 @app.post("/review")
 def review_endpoint(body: ReviewRequest):
     if len(body.question.strip()) < 3:
@@ -777,13 +816,143 @@ textarea{min-height:100px;resize:vertical}
 </div>
 
 <section class="panel" style="margin-top:24px">
-  <h2>Synthetic Corpus Documents (Workspace Provenance)</h2>
-  <div id="sources" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px"></div>
+  <h2>Document Ingestion (PDF · DOCX · TXT)</h2>
+  <div style="font-size:13px; color:#94a3b8; margin-bottom:16px">
+    Upload custom security policy documents into your active workspace context.
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px">
+    <div>
+      <label for="upload_workspace_select">Target Workspace</label>
+      <select id="upload_workspace_select">
+        <option value="ws_acme_corp" selected>ws_acme_corp (Acme Corporation)</option>
+        <option value="ws_globex_corp">ws_globex_corp (Globex Corporation)</option>
+      </select>
+    </div>
+    <div>
+      <label for="upload_version_input">Document Version</label>
+      <input type="text" id="upload_version_input" value="2026-01" placeholder="e.g. 2026-01">
+    </div>
+  </div>
+
+  <div style="margin-bottom:14px">
+    <label for="file_upload_input">Choose Documents (Supported: PDF, DOCX, TXT)</label>
+    <input type="file" id="file_upload_input" multiple accept=".pdf,.docx,.txt" style="background:#090d16; padding:8px; border:1px solid #334155; border-radius:8px">
+    <div id="file_preview_list" style="margin-top:8px; font-size:12px; color:#cbd5e1"></div>
+  </div>
+
+  <button id="btn_upload" class="btn-primary" onclick="uploadDocuments()">Upload & Index Documents</button>
+
+  <div id="upload_status" style="margin-top:16px"></div>
+
+  <div style="margin-top:20px">
+    <h3 style="font-size:14px; color:#f1f5f9; margin-bottom:8px">Indexed Documents</h3>
+    <div id="indexed_docs_list" style="display:flex; flex-direction:column; gap:8px"></div>
+  </div>
+</section>
+
 </section>
 </main>
 
 <script>
 const el = id => document.getElementById(id);
+
+async function uploadDocuments() {
+  const fileInput = el('file_upload_input');
+  const files = fileInput.files;
+  if (!files || files.length === 0) {
+    alert('Please select at least one file to upload.');
+    return;
+  }
+  const ws = el('upload_workspace_select').value;
+  const ver = el('upload_version_input').value.trim() || '2026-01';
+
+  const formData = new FormData();
+  formData.append('workspace_id', ws);
+  formData.append('version', ver);
+  for (let i = 0; i < files.length; i++) {
+    formData.append('files', files[i]);
+  }
+
+  const btn = el('btn_upload');
+  btn.disabled = true;
+  const statusDiv = el('upload_status');
+  statusDiv.innerHTML = '<div style="color:#34d399; font-weight:600; padding:10px 0">Extracting text, chunking, generating 384-dim embeddings, and indexing into Qdrant & BM25...</div>';
+
+  try {
+    const res = await fetch('/upload', {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    renderUploadResults(data);
+    loadIndexedDocuments();
+  } catch (err) {
+    statusDiv.innerHTML = '<div style="color:#ef4444">Upload failed: ' + escapeHtml(err.message) + '</div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderUploadResults(data) {
+  const target = el('upload_status');
+  let html = `<div class="box" style="border-left:3px solid #10b981">
+    <div class="box-title" style="color:#34d399">Ingestion Summary (${data.successful_documents}/${data.total_files} Success · ${data.total_chunks_added} Chunks Added)</div>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px">`;
+  
+  for (const item of data.results) {
+    let color = item.status === 'SUCCESS' ? '#34d399' : (item.status === 'DUPLICATE' ? '#fbbf24' : '#ef4444');
+    let badgeText = item.status === 'SUCCESS' ? '✓ INDEXED' : (item.status === 'DUPLICATE' ? '⚠ DUPLICATE' : '✗ FAILED');
+    html += `<div style="font-size:12px; background:#0b0f19; padding:8px 12px; border-radius:6px; border:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center">
+      <div>
+        <strong style="color:#f8fafc">${escapeHtml(item.filename)}</strong>
+        ${item.document_id ? `<span class="tag-chip" style="margin-left:6px">${escapeHtml(item.document_id)}</span>` : ''}
+        <div style="color:#94a3b8; font-size:11px">${escapeHtml(item.reason || item.message || '')}</div>
+      </div>
+      <span style="color:${color}; font-weight:700; font-size:11px">${badgeText} (${item.chunks_created || 0} chunks)</span>
+    </div>`;
+  }
+  html += `</div></div>`;
+  target.innerHTML = html;
+}
+
+async function loadIndexedDocuments() {
+  try {
+    const docs = await request('/indexed-documents');
+    const container = el('indexed_docs_list');
+    if (!container) return;
+    container.replaceChildren();
+    if (docs.length === 0) {
+      container.innerHTML = '<div style="color:#64748b; font-size:12px">No user documents indexed yet.</div>';
+      return;
+    }
+    for (const d of docs) {
+      const card = document.createElement('div');
+      card.style.background = '#090d16';
+      card.style.padding = '10px 14px';
+      card.style.borderRadius = '6px';
+      card.style.border = '1px solid #1e293b';
+      card.style.display = 'flex';
+      card.style.justifyContent = 'space-between';
+      card.style.alignItems = 'center';
+      card.innerHTML = `
+        <div>
+          <span style="color:#10b981; font-weight:700; font-size:12px">${escapeHtml(d.title)}</span>
+          <span class="tag-chip" style="margin-left:6px">${escapeHtml(d.document_id)}</span>
+          <span class="tag-chip">${escapeHtml(d.source_type.toUpperCase())}</span>
+          <span class="tag-chip">v${escapeHtml(d.version)}</span>
+          <span class="tag-chip">${escapeHtml(d.workspace_id)}</span>
+        </div>
+        <div style="font-size:12px; color:#94a3b8; font-weight:600">${d.chunks_count} chunks</div>
+      `;
+      container.appendChild(card);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 
 function setQ(q, ws) {
   el('question').value = q;
@@ -1036,21 +1205,6 @@ el('btn_evaluate').onclick = async () => {
   }
 };
 
-request('/documents').then(docs => {
-  const container = el('sources');
-  container.replaceChildren();
-  for(const doc of docs) {
-    const art = document.createElement('article');
-    art.style.background = '#090d16';
-    art.style.padding = '12px';
-    art.style.borderRadius = '8px';
-    art.style.border = '1px solid #1e293b';
-    art.innerHTML = '<div style="font-size:11px; color:#10b981; font-weight:700">' + escapeHtml(doc.id) + ' · ' + escapeHtml(doc.title) + ' (v' + escapeHtml(doc.version) + ') [' + escapeHtml(doc.workspace_id) + ']</div><div style="font-size:12px; color:#cbd5e1; margin-top:4px">' + escapeHtml(doc.text) + '</div>';
-    container.appendChild(art);
-  }
-}).catch(err => {
-  el('sources').textContent = err.message;
-});
 </script>
 </body>
 </html>

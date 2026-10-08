@@ -31,11 +31,14 @@ TEST_FILES = [
     "test_day18.py",
     "test_day19.py",
     "test_day19_5.py",
+    "test_day19_75.py",
 ]
+
 
 PYTHON = sys.executable
 LOCK_PATH = os.path.join("qdrant_db", ".lock")
-WAIT_BETWEEN = 3  # seconds between test runs
+WAIT_BETWEEN = 1  # seconds between test runs
+
 
 
 def release_qdrant_lock():
