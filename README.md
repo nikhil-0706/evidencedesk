@@ -83,7 +83,14 @@ Run the complete regression suite using the included test runner:
 This test runner correctly manages Qdrant local locks between consecutive test suites.
 
 ## Evaluation
-The legacy Q01–Q25 benchmark questions and dataset are frozen. EvidenceDesk includes a suite of synthetic benchmark questions to ensure retrieval behaviors (like semantic matching and conflict detection) remain intact. Day 21 will finalize the benchmark report.
+EvidenceDesk was evaluated against a frozen 25-question security compliance benchmark, split into Development (Q01-Q15) and Held-Out (Q16-Q25) sets.
+**End-to-End Performance:**
+- **Development (Q01-Q15):** 93.3% accuracy
+- **Held-Out (Q16-Q25):** 90.0% accuracy
+- **Overall:** 92.0% accuracy
+- **Zero Grounding Failures / Zero Malformed Outputs**
+
+The retrieval pipeline achieved 100% correct passage retrieval using the RRF+Cross-Encoder setup, proving that the semantic architecture securely handles both straightforward policy lookups and complex conflicting/ambiguous questions without LLM hallucinations. For full metrics, see [docs/final-evaluation.md](docs/final-evaluation.md).
 
 ## Security Limitations
 - **Workspace Isolation:** Workspace isolation currently operates exclusively at the retrieval layer.
