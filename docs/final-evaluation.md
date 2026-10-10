@@ -15,16 +15,16 @@ Held-Out (Q16-Q25): 10 questions
 |--------|---------------|--------------------|-------------------|
 | BM25   | 13/15 | 10/10 | 23/25 |
 | Dense  | 15/15 | 10/10 | 25/25 |
-| Hybrid | 15/15 | 10/10 | 25/25 |
+| Hybrid | 14/15 | 10/10 | 24/25 |
 | RRF    | 15/15 | 10/10 | 25/25 |
 | RRF+CrossEncoder | 15/15 | 10/10 | 25/25 |
 
 ## 5. Category Breakdown (E2E)
 | Category | Correct | Total | Percentage |
 |----------|---------|-------|------------|
-| Direct | 8 | 9 | 88.9% |
-| Paraphrased | 4 | 5 | 80.0% |
-| Ambiguous | 2 | 2 | 100.0% |
+| Direct | 7 | 9 | 77.8% |
+| Paraphrased | 2 | 5 | 40.0% |
+| Ambiguous | 1 | 2 | 50.0% |
 | Conflicting | 3 | 3 | 100.0% |
 | Unanswerable | 6 | 6 | 100.0% |
 
@@ -34,8 +34,8 @@ Held-Out (Q16-Q25): 10 questions
 
 ## 7. End-to-End Evaluation
 - Development (Q01-Q15): 14/15 (93.3%)
-- Held-Out (Q16-Q25): 9/10 (90.0%)
-- Overall (Q01-Q25): 23/25 (92.0%)
+- Held-Out (Q16-Q25): 5/10 (50.0%)
+- Overall (Q01-Q25): 19/25 (76.0%)
 
 ## 8. Grounding Failures
 Total: 0
@@ -51,12 +51,40 @@ Total: 0
 - Likely Failure Category: Status Mismatch
 - Stage: Retrieval
 
+**Q17**:
+- Expected: ANSWERABLE
+- Actual: INSUFFICIENT_EVIDENCE
+- Retrieved: []
+- Likely Failure Category: Status Mismatch
+- Stage: Retrieval
+
 **Q18**:
 - Expected: ANSWERABLE
 - Actual: INSUFFICIENT_EVIDENCE
 - Retrieved: []
 - Likely Failure Category: Status Mismatch
 - Stage: Retrieval
+
+**Q19**:
+- Expected: ANSWERABLE
+- Actual: AMBIGUOUS
+- Retrieved: []
+- Likely Failure Category: Status Mismatch
+- Stage: Retrieval
+
+**Q20**:
+- Expected: ANSWERABLE
+- Actual: AMBIGUOUS
+- Retrieved: []
+- Likely Failure Category: Status Mismatch
+- Stage: Retrieval
+
+**Q23**:
+- Expected: AMBIGUOUS
+- Actual: ANSWERABLE
+- Retrieved: ['chk_sec004_001']
+- Likely Failure Category: Status Mismatch
+- Stage: Reasoning
 
 ## 11. Real-document Validation
 Validated successfully in Day 19.5 and Day 19.75 regression test suite. All chunks correctly mapped to workspace, preserved page metadata, and generated deterministic IDs.

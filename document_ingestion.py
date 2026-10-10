@@ -8,18 +8,20 @@ Supports:
 
 Preserves:
 - Document identity & versioning
-- Structure-aware chunking
-- Deterministic chunk IDs
+- Shared structure-aware chunking (chunking.py)
+- Deterministic chunk IDs and ordered chunk_index
 - Provenance metadata (workspace_id, document_id, title, version, page, section, source_type, filename)
 - Qdrant dense vector search (384-dim all-MiniLM-L6-v2)
 - BM25 retrieval
-- Downstream RRF (k=60), Cross-Encoder reranking, SLM reasoning, and Human Review.
+- Safe document deletion & re-indexing
+- Downstream RRF (k=60), Cross-Encoder reranking, Bounded Adjacent-Chunk Expansion, SLM reasoning, and Human Review.
 """
 
 import os
 import io
 import re
 import hashlib
+from collections import Counter
 import uuid
 from typing import List, Dict, Any, Optional, Tuple
 import fitz  # PyMuPDF
@@ -27,14 +29,23 @@ import docx  # python-docx
 from rank_bm25 import BM25Okapi
 from qdrant_client import QdrantClient, models
 
+from chunking import (
+    extract_pdf_blocks,
+    extract_docx_blocks,
+    extract_txt_blocks,
+    structure_aware_chunking_shared,
+    conservative_normalize_text,
+)
+from expansion import expand_adjacent_chunks
+
 MAX_UPLOAD_MB = 10
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt"}
 
 STOP_WORDS = set("a an the is are do does what which how who your you we our for to of in at and or with required".split())
 
+
 def _tokenize(text: str) -> List[str]:
     return [word for word in re.findall(r"[a-z0-9]+", text.lower()) if word not in STOP_WORDS]
-
 
 
 def compute_content_hash(content: bytes) -> str:
@@ -51,106 +62,17 @@ def generate_document_id(workspace_id: str, filename: str, content_hash: str) ->
 
 def extract_pdf(file_bytes: bytes, filename: str) -> List[Dict[str, Any]]:
     """Extract text and line structure from a PDF byte buffer using PyMuPDF."""
-    try:
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
-    except Exception as exc:
-        raise ValueError(f"Corrupt or invalid PDF file: {exc}")
-
-    if doc.page_count == 0:
-        raise ValueError(f"PDF is empty: {filename}")
-
-    pages_data = []
-    total_text_len = 0
-
-    for page_num, page in enumerate(doc, start=1):
-        text = page.get_text("text")
-        total_text_len += len(text.strip())
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        pages_data.append({
-            "page": page_num,
-            "text": text,
-            "lines": lines,
-        })
-
-    if total_text_len == 0:
-        raise ValueError(f"PDF contains no extractable text: {filename}")
-
-    return pages_data
+    return extract_pdf_blocks(file_bytes, filename)
 
 
 def extract_docx(file_bytes: bytes, filename: str) -> List[Dict[str, Any]]:
     """Extract text and headings from a DOCX byte buffer using python-docx."""
-    try:
-        file_stream = io.BytesIO(file_bytes)
-        doc = docx.Document(file_stream)
-    except Exception as exc:
-        raise ValueError(f"Corrupt or invalid DOCX file: {exc}")
-
-    paragraphs_data = []
-    total_text_len = 0
-    current_section = "General"
-
-    for para in doc.paragraphs:
-        text = para.text.strip()
-        if not text:
-            continue
-
-        total_text_len += len(text)
-        style_name = para.style.name if para.style else ""
-
-        # Heading detection heuristic
-        if "Heading" in style_name or text.startswith("Section ") or (text.isupper() and len(text) < 60):
-            current_section = text
-            continue
-
-        paragraphs_data.append({
-            "page": None,
-            "section": current_section,
-            "text": text,
-        })
-
-    if total_text_len == 0:
-        raise ValueError(f"DOCX contains no extractable text: {filename}")
-
-    return paragraphs_data
+    return extract_docx_blocks(file_bytes, filename)
 
 
 def extract_txt(file_bytes: bytes, filename: str) -> List[Dict[str, Any]]:
     """Extract text from a TXT byte buffer with UTF-8 encoding."""
-    try:
-        text = file_bytes.decode("utf-8")
-    except UnicodeDecodeError:
-        try:
-            text = file_bytes.decode("latin-1")
-        except Exception as exc:
-            raise ValueError(f"Invalid text encoding for TXT file: {exc}")
-
-    if not text.strip():
-        raise ValueError(f"TXT file is empty: {filename}")
-
-    # Split into logical paragraphs
-    raw_paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
-    if not raw_paragraphs:
-        raw_paragraphs = [p.strip() for p in text.splitlines() if p.strip()]
-
-    txt_data = []
-    current_section = "General"
-
-    for p in raw_paragraphs:
-        if p.startswith("Section ") or p.startswith("Title:") or (p.isupper() and len(p) < 60):
-            current_section = p
-            continue
-
-        txt_data.append({
-            "page": None,
-            "section": current_section,
-            "text": p,
-        })
-
-    if not txt_data:
-        raise ValueError(f"TXT file contains no valid content: {filename}")
-
-    return txt_data
+    return extract_txt_blocks(file_bytes, filename)
 
 
 def structure_aware_chunking_multi(
@@ -164,55 +86,24 @@ def structure_aware_chunking_multi(
 ) -> List[Dict[str, Any]]:
     """
     Common structure-aware chunker for PDF, DOCX, and TXT documents.
-    Generates deterministic chunk IDs.
+    Generates deterministic chunk IDs and sequence ordering (chunk_index).
     """
-    chunks = []
-    doc_id_clean = document_id.lower().replace("-", "")
-
-    for idx, block in enumerate(extracted_blocks, start=1):
-        page = block.get("page")
-        section = block.get("section", "General")
-        text = block.get("text", "")
-
-        # Split text into sentences for sentence/paragraph-level chunks
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
-        if not sentences:
-            sentences = [text.strip()]
-
-        for s_idx, sentence in enumerate(sentences, start=1):
-            clean_excerpt = " ".join(sentence.split())
-            if not clean_excerpt:
-                continue
-
-            # Skip standalone short title/header repetitions
-            if len(clean_excerpt) < 15 and ("Section" in clean_excerpt or "Policy" in clean_excerpt):
-                continue
-
-            page_str = f"p{page:02d}" if page is not None else "p0"
-            hash_input = f"{document_id}_{version}_{page_str}_{section}_{clean_excerpt}_{idx}_{s_idx}"
-            digest = hashlib.sha256(hash_input.encode("utf-8")).hexdigest()[:8]
-            chunk_id = f"chk_{source_type}_{doc_id_clean}_{page_str}_{digest}"
-
-            chunks.append({
-                "chunk_id": chunk_id,
-                "workspace_id": workspace_id,
-                "document_id": document_id,
-                "title": title,
-                "version": version,
-                "page": page,
-                "section": section,
-                "source_type": source_type,
-                "filename": filename,
-                "excerpt": clean_excerpt,
-            })
-
-    return chunks
+    return structure_aware_chunking_shared(
+        extracted_blocks=extracted_blocks,
+        document_id=document_id,
+        title=title,
+        version=version,
+        workspace_id=workspace_id,
+        source_type=source_type,
+        filename=filename,
+    )
 
 
 class MultiDocumentCorpus:
     """
     Manages multi-document ingestion (PDF, DOCX, TXT),
-    BM25 indexing, Qdrant vector storage, and workspace-isolated retrieval.
+    BM25 indexing, Qdrant vector storage, safe re-indexing/deletion,
+    and workspace-isolated retrieval.
     """
 
     def __init__(
@@ -228,6 +119,57 @@ class MultiDocumentCorpus:
         self.documents: Dict[str, Dict[str, Any]] = {}  # doc_id -> doc metadata
         self.content_hashes: Dict[Tuple[str, str], str] = {}  # (workspace_id, hash) -> doc_id
         self.bm25_model: Optional[BM25Okapi] = None
+        self._load_from_storage()
+
+    def _load_from_storage(self):
+        """Restore in-memory chunks, document metadata, and BM25 index from persistent Qdrant collection."""
+        try:
+            if not self.qdrant_client.collection_exists(self.collection_name):
+                return
+            scroll_res = self.qdrant_client.scroll(
+                collection_name=self.collection_name,
+                limit=10000,
+                with_payload=True,
+                with_vectors=False,
+            )
+            points = scroll_res[0] if scroll_res else []
+            if not points:
+                return
+
+            restored_chunks = []
+            for p in points:
+                if p.payload:
+                    restored_chunks.append(p.payload)
+
+            restored_chunks.sort(key=lambda c: (
+                c.get("workspace_id", ""),
+                c.get("document_id", ""),
+                c.get("version", ""),
+                c.get("chunk_index", 0)
+            ))
+            self.chunks = restored_chunks
+
+            # Restore document metadata
+            doc_counts = Counter(c.get("document_id") for c in self.chunks if c.get("document_id"))
+            for c in self.chunks:
+                doc_id = c.get("document_id")
+                ws_id = c.get("workspace_id")
+                if doc_id and doc_id not in self.documents:
+                    self.documents[doc_id] = {
+                        "document_id": doc_id,
+                        "workspace_id": ws_id,
+                        "title": c.get("title", doc_id),
+                        "version": c.get("version", "2026-01"),
+                        "source_type": c.get("source_type", "pdf"),
+                        "filename": c.get("filename", f"{doc_id}.pdf"),
+                        "chunks_count": doc_counts.get(doc_id, 1),
+                    }
+
+            if self.chunks:
+                tokenized_corpus = [_tokenize(c["excerpt"]) for c in self.chunks]
+                self.bm25_model = BM25Okapi(tokenized_corpus)
+        except Exception as exc:
+            print(f"Warning: Could not restore corpus from Qdrant: {exc}")
 
     def _ensure_collection(self):
         if not self.qdrant_client.collection_exists(self.collection_name):
@@ -251,6 +193,52 @@ class MultiDocumentCorpus:
 
         return None
 
+    def delete_document(self, document_id: str, workspace_id: str) -> bool:
+        """
+        Safely remove obsolete or updated document chunks from Qdrant, BM25, and memory.
+        Prevents stale vectors remaining searchable.
+        """
+        self._ensure_collection()
+        try:
+            self.qdrant_client.delete(
+                collection_name=self.collection_name,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="workspace_id",
+                                match=models.MatchValue(value=workspace_id),
+                            ),
+                            models.FieldCondition(
+                                key="document_id",
+                                match=models.MatchValue(value=document_id),
+                            ),
+                        ]
+                    )
+                ),
+            )
+        except Exception as exc:
+            print(f"Warning: Failed to delete Qdrant points for {document_id}: {exc}")
+
+        # Clean up in-memory chunks
+        self.chunks = [c for c in self.chunks if not (c.get("workspace_id") == workspace_id and c.get("document_id") == document_id)]
+        
+        # Remove from document dict and content hashes
+        if document_id in self.documents:
+            doc_info = self.documents.pop(document_id)
+            c_hash = doc_info.get("content_hash")
+            if c_hash and (workspace_id, c_hash) in self.content_hashes:
+                self.content_hashes.pop((workspace_id, c_hash))
+
+        # Rebuild BM25 index
+        if self.chunks:
+            tokenized_corpus = [_tokenize(c["excerpt"]) for c in self.chunks]
+            self.bm25_model = BM25Okapi(tokenized_corpus)
+        else:
+            self.bm25_model = None
+
+        return True
+
     def ingest_single_document(
         self,
         filename: str,
@@ -258,13 +246,13 @@ class MultiDocumentCorpus:
         workspace_id: str = "ws_acme_corp",
         version: str = "2026-01",
         title: Optional[str] = None,
+        overwrite: bool = False,
     ) -> Dict[str, Any]:
         """
         Ingest a single uploaded file (PDF, DOCX, TXT).
-        Handles validation, duplicate detection, text extraction, chunking,
+        Handles validation, duplicate detection, text extraction, shared structure-aware chunking,
         embedding generation, and Qdrant + BM25 indexing.
         """
-
         validation_err = self.validate_file(filename, file_bytes)
         if validation_err:
             return {
@@ -277,7 +265,7 @@ class MultiDocumentCorpus:
         content_hash = compute_content_hash(file_bytes)
         dup_key = (workspace_id, content_hash)
 
-        if dup_key in self.content_hashes:
+        if dup_key in self.content_hashes and not overwrite:
             existing_doc_id = self.content_hashes[dup_key]
             return {
                 "filename": filename,
@@ -292,13 +280,17 @@ class MultiDocumentCorpus:
         doc_title = title or os.path.splitext(filename)[0].replace("_", " ").replace("-", " ").title()
         document_id = generate_document_id(workspace_id, filename, content_hash)
 
+        # If overwriting existing document, remove stale vectors first
+        if overwrite or document_id in self.documents:
+            self.delete_document(document_id, workspace_id)
+
         try:
             if source_type == "pdf":
-                blocks = extract_pdf(file_bytes, filename)
+                blocks = extract_pdf_blocks(file_bytes, filename)
             elif source_type == "docx":
-                blocks = extract_docx(file_bytes, filename)
+                blocks = extract_docx_blocks(file_bytes, filename)
             elif source_type == "txt":
-                blocks = extract_txt(file_bytes, filename)
+                blocks = extract_txt_blocks(file_bytes, filename)
             else:
                 return {
                     "filename": filename,
@@ -314,7 +306,7 @@ class MultiDocumentCorpus:
                 "chunks_created": 0,
             }
 
-        new_chunks = structure_aware_chunking_multi(
+        new_chunks = structure_aware_chunking_shared(
             extracted_blocks=blocks,
             document_id=document_id,
             title=doc_title,
@@ -453,13 +445,29 @@ class MultiDocumentCorpus:
             ranked.append(chunk)
         return ranked
 
-    def review_documents(self, question: str, workspace_id: str = "ws_acme_corp") -> Dict[str, Any]:
-        """Execute RRF -> Cross-Encoder -> SLM -> Human Review pipeline on uploaded document corpus."""
+    def review_documents(
+        self,
+        question: str,
+        workspace_id: str = "ws_acme_corp",
+        enable_expansion: bool = True,
+    ) -> Dict[str, Any]:
+        """Execute RRF -> Cross-Encoder -> Bounded Expansion -> SLM -> Human Review pipeline on uploaded document corpus."""
         from evidencedesk import rrf_fuse, rerank_evidence, analyze_evidence
         bm25_res = self.retrieve_bm25(question, workspace_id, top_k=20)
         emb_res = self.retrieve_embedding(question, workspace_id, top_k=20)
         rrf_cand = rrf_fuse(bm25_res, emb_res, k=60, top_k=10)
         evidence = rerank_evidence(question, rrf_cand, top_k=5)
+
+        if enable_expansion and self.chunks:
+            workspace_chunks = [c for c in self.chunks if c.get("workspace_id") == workspace_id]
+            evidence = expand_adjacent_chunks(
+                candidate_chunks=evidence,
+                all_corpus_chunks=workspace_chunks,
+                max_seeds=3,
+                max_neighbors_per_seed=1,
+                max_total_expanded=5,
+            )
+
         analysis = analyze_evidence(question, evidence)
 
         return {
@@ -468,7 +476,7 @@ class MultiDocumentCorpus:
             "status": analysis.get("status", "INSUFFICIENT_EVIDENCE"),
             "candidate_excerpt": evidence[0]["excerpt"] if evidence else None,
             "evidence": evidence,
-            "mode": "multi_document_hybrid_rrf_reranked_reasoning",
+            "mode": "multi_document_hybrid_rrf_reranked_expanded_reasoning",
             "reason": analysis.get("reason", ""),
             "evidence_chunk_ids": analysis.get("evidence_chunk_ids", []),
             "evidence_quote": analysis.get("evidence_quote", ""),
@@ -481,4 +489,3 @@ class MultiDocumentCorpus:
         if workspace_id:
             docs = [d for d in docs if d["workspace_id"] == workspace_id]
         return docs
-

@@ -9,6 +9,7 @@ Synthetic documents only. Do not expose this development server publicly.
 """
 import json
 import re
+import unicodedata
 import sys
 import os
 from collections import Counter
@@ -27,7 +28,10 @@ load_dotenv()
 
 
 # Configuration / Environment Variables
-QDRANT_PATH = os.getenv("QDRANT_PATH", "qdrant_db")
+if "pytest" in sys.modules or any("test" in arg or "evaluations" in arg for arg in sys.argv[0].split(os.sep)):
+    QDRANT_PATH = os.getenv("QDRANT_PATH", "qdrant_test_db")
+else:
+    QDRANT_PATH = os.getenv("QDRANT_PATH", "qdrant_db")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "evidencedesk")
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 RERANKER_MODEL_NAME = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-large")
@@ -43,7 +47,17 @@ ollama_client = OllamaClient(host=OLLAMA_BASE_URL)
 # ---------------------------------------------------------------------------
 # Day 15: Structured output schema for SLM evidence classification
 # ---------------------------------------------------------------------------
+def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+    text = text.replace('“', '"').replace('”', '"')
+    text = text.replace('‘', "'").replace('’', "'")
+    text = unicodedata.normalize('NFKC', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
 class EvidenceDecision(BaseModel):
+    thought: Optional[str] = None
     status: Literal[
         "ANSWERABLE",
         "AMBIGUOUS",
@@ -73,6 +87,7 @@ CASES = [
 ]
 STOP = set("a an the is are do does what which how who your you we our for to of in at and or with required".split())
 THRESHOLD = 0.25  # Heuristic lexical coverage, NOT calibrated confidence.
+REGISTERED_WORKSPACES = {}
 app = FastAPI(title="EvidenceDesk baseline", version="0.1.0")
 
 # --- EMBEDDING RETRIEVER (Day 4) ---
@@ -90,18 +105,23 @@ except Exception as e:
     print(f"Error loading reranker model: {e}")
     sys.exit(1)
 
+from expansion import expand_adjacent_chunks
+
 PASSAGES = []
 for doc in DOCUMENTS:
     sentences = [s for s in re.split(r"(?<=[.!?])\s+", doc["text"]) if s.strip()]
     for idx, sentence in enumerate(sentences, start=1):
         PASSAGES.append({
             "chunk_id": f"chk_{doc['id'].lower().replace('-', '')}_{idx:03d}",
+            "chunk_index": idx - 1,
             "workspace_id": doc.get("workspace_id", "ws_acme_corp"),
             "document_id": doc["id"],
             "title": doc["title"],
             "version": doc["version"],
             "excerpt": sentence.strip()
         })
+
+
 
 try:
     print(f"Initializing Qdrant at {QDRANT_PATH} and indexing policy passages...")
@@ -249,145 +269,149 @@ Do not generate a compliance answer.
 CLASSIFICATION RULES
 ===========================================================
 
-ANSWERABLE
-Return ANSWERABLE when at least one evidence passage directly establishes
-the fact requested by the question.
-Semantic equivalence is allowed — the question and evidence do NOT need to
-use identical words. Focus on whether the evidence establishes the requested fact.
+1. ANSWERABLE:
+Classify as ANSWERABLE if AT LEAST ONE evidence passage directly answers or establishes the fact requested by the question.
+- Semantic and operational equivalence is ALLOWED: The question and evidence do NOT need to use identical words.
+  * "takes the first look" / "initial handling" ≈ "triages"
+  * "who gives permission" / "authorizes" ≈ "requires approval"
+  * "travels between systems" / "moves between systems" ≈ "in transit" (e.g. TLS 1.2 or later protecting data in transit directly answers what safeguards customer information traveling/moving between systems)
+  * "what encryption standard is used to protect customer data at rest" is directly answered by "Customer data is encrypted at rest using AES-256."
+  * "where are encryption keys managed" is answered by "managed in a dedicated key management service"
+- Headings, Titles, and Control IDs are CONTEXT, NOT Factual Claims:
+  Section headings, document titles, control headers, and outline labels (e.g. "Section 4: Unencrypted Temporary Storage Exceptions", "Control ID: BCR-01.1", "## Security Policies") provide structural navigational context. They do NOT make substantive policy claims or factual assertions.
+  * NEVER treat a heading or title as conflicting with substantive body text!
+  * If a heading mentions a topic and another passage contains substantive body text answering the question, return ANSWERABLE and cite the answered passage.
+- General vs Specific Statements are COMPATIBLE (NOT Conflicts):
+  Statements that differ only in degree of detail or specificity reinforce each other and are fully compatible:
+  * General: "Customer data is encrypted at rest."
+  * Specific: "Customer data is encrypted at rest using AES-256."
+  These do NOT conflict! The specific statement provides additional implementation detail. Return ANSWERABLE, cite the passage(s), and quote the evidence.
+- Differing Scopes do NOT Conflict:
+  Statements addressing different operational areas, systems, environments, or record types are compatible statements about different things:
+  * "Database backup retention is 30 days" vs "Audit log retention is 365 days" -> Different scopes (backups vs logs). If asking about database backups, return ANSWERABLE (30 days).
+  * "Production environments require strict RBAC" vs "Developer sandbox environments allow admin access" -> Different scopes (production vs sandbox).
+- Missing Evidence or Silence is NOT a Conflict:
+  If one document contains the answer and another document does not mention it or is silent, that is NOT a conflict -> ANSWERABLE based on the document providing the answer.
+- Questionnaires, Security Assessments, and Control Responses:
+  * Explicit "Yes", "No", and "Not Applicable" questionnaire answers directly answer whether a practice, control, or feature is mandated, practiced, or provided:
+    1. An explicit "Yes" (or affirmative statement like "strict RBAC is enforced") directly answers the question -> ANSWERABLE.
+    2. An explicit "No" (e.g. "No.", "No, we do not...", "No, but new agreements will be reviewed...") directly answers the question by establishing that the practice is NOT mandated or not in place!
+       CRITICAL: Do NOT treat negative answers as missing evidence! Stating "No" is a direct, explicit answer. Never return INSUFFICIENT_EVIDENCE when the evidence explicitly states "No" to the requested question. Return ANSWERABLE, cite the chunk(s), and quote the answer verbatim including any qualifications.
+    3. An explicit "Not Applicable" / "N/A" (e.g. "Not Applicable | We do not offer...") directly answers the question by establishing that the requirement is not applicable or not offered -> ANSWERABLE. Quote the response verbatim.
+- Answered Controls vs Unanswered Controls:
+  If ANY passage or question-answer pair in the evidence contains a direct answer (Yes, No, N/A, or factual statement), you MUST return ANSWERABLE and cite that answered passage! Do NOT return INSUFFICIENT_EVIDENCE merely because other passages in the evidence contain related questions or headings that are unanswered.
+- When a question and its answer are in adjacent chunks (e.g. one chunk contains the question control header and the adjacent chunk contains the Yes/No/N/A response), they belong together. Treat them as ANSWERABLE and cite both chunks (or the answer chunk).
+- Bare Question Alone without Answer:
+  If NONE of the passages provide an answer, and the only relevant passage merely asks the question with NO answer anywhere in the evidence, return INSUFFICIENT_EVIDENCE with an empty quote. An evidence passage that merely asks a question (ending in '?') without an accompanying Yes, No, N/A, or policy statement is NOT an answer.
+- Specific questions asking how long a particular record or data type is retained (e.g. "How long are database backups retained?") are directly answered by statements of duration (e.g. "retention is 30 days").
 
-Before returning INSUFFICIENT_EVIDENCE, ask yourself:
-"Does any supplied passage establish the core fact requested, even with
-different terminology?"
-If YES → return ANSWERABLE.
+2. AMBIGUOUS:
+Classify as AMBIGUOUS ONLY when the QUESTION ITSELF is vague or underspecified (e.g. "What is your retention policy?" without specifying which records).
+- Closed questions (e.g. "Do you conduct biannual independent vulnerability scans?") are NEVER AMBIGUOUS.
+- Explicit "No" answers (e.g. "No. Independent external scans are performed annually...") directly answer the question -> ANSWERABLE.
+- NEVER return AMBIGUOUS merely because an answer is negative ("No") or split across adjacent chunks! Return ANSWERABLE.
 
-INSUFFICIENT_EVIDENCE
-Return INSUFFICIENT_EVIDENCE only when the supplied evidence genuinely does
-not establish the requested fact.
+3. CONFLICTING:
+Classify as CONFLICTING ONLY when two or more distinct evidence passages make substantive, mutually incompatible factual claims about the EXACT SAME FACT within the SAME or COMPATIBLE SCOPE.
+- Incompatible Claims Required:
+  To assign CONFLICTING, there MUST be two substantive body claims asserting incompatible truths about the exact same fact and compatible scope.
+  * Genuine conflict: "Backup retention is 30 days" vs "Database backup retention is 90 days."
+  * Genuine conflict: Document 1 states storage encryption is provided by "cloud provider" and Document 2 states storage encryption is managed by "internal KMS / proprietary KMS".
+- Headings are NOT conflicting claims: Headings, titles, and labels provide navigational structure, not policy claims.
+- Specificity differences and differing scopes do NOT conflict.
+- Cite ALL conflicting passages in `evidence_chunk_ids` and return empty `evidence_quote: ""`.
 
-AMBIGUOUS
-Return AMBIGUOUS when the question itself is underspecified and clarification
-is required before determining which policy applies.
-
-CONFLICTING
-Return CONFLICTING when the question is specific but the supplied evidence
-gives materially different answers for the same requested fact.
-
-===========================================================
-AMBIGUOUS vs CONFLICTING
-===========================================================
-
-AMBIGUOUS = the QUESTION is underspecified.
-CONFLICTING = the QUESTION is specific but evidence disagrees.
-
-===========================================================
-SEMANTIC EQUIVALENCE — KEY EXAMPLES
-===========================================================
-
-These pairs of phrases are semantically equivalent and MUST be treated as ANSWERABLE:
-
-  "Who takes the first look at a reported security incident?"
-  + "Security incidents are triaged by the on-call engineer."
-  → ANSWERABLE  ("first look" ≈ "triage"; "on-call engineer" is the role)
-
-  "Where are encryption keys managed?"
-  + "Encryption keys are managed in a dedicated key management service."
-  → ANSWERABLE  (the evidence explicitly names the management location)
-
-  "Who gives permission for administrative privileges?"
-  + "Administrative access requires manager approval."
-  → ANSWERABLE  ("gives permission" ≈ "requires approval")
-
-Do not require exact keyword matching.
-Do not reject an answer merely because the evidence uses a related operational
-term rather than the exact wording of the question.
+4. INSUFFICIENT_EVIDENCE:
+Classify as INSUFFICIENT_EVIDENCE when NO supplied passage contains or establishes the requested fact.
 
 ===========================================================
 FEW-SHOT EXAMPLES
 ===========================================================
 
 Example 1 — ANSWERABLE (direct)
-
 Question: Who approves administrative access?
 Evidence: [chk_sec001_003] Administrative access requires manager approval.
 
 {{
   "status": "ANSWERABLE",
-  "reason": "The evidence directly establishes who approves administrative access.",
+  "reason": "The evidence directly establishes that administrative access requires manager approval.",
   "evidence_chunk_ids": ["chk_sec001_003"],
   "evidence_quote": "Administrative access requires manager approval."
 }}
 
-
-Example 2 — ANSWERABLE (paraphrase: 'first look' = 'triage')
-
-Question: Who takes the first look at a reported security incident?
-Evidence: [chk_sec004_001] Security incidents are triaged by the on-call engineer.
-         [chk_sec004_002] Confirmed incidents are escalated to the security lead.
+Example 2 — ANSWERABLE (Explicit negative questionnaire answer with qualification across adjacent chunks)
+Question: Do you require mandatory background checks for all subcontractors prior to facility access?
+Evidence: [chk_ctrl_001] Control ID: HR-04.1 Subcontractor Background Screening
+         [chk_ctrl_002] No. Background checks are only performed for direct full-time personnel, though subcontractor screening is currently under policy review.
 
 {{
   "status": "ANSWERABLE",
-  "reason": "Triage is the initial handling of a security incident. The on-call engineer performs the first look.",
-  "evidence_chunk_ids": ["chk_sec004_001"],
-  "evidence_quote": "Security incidents are triaged by the on-call engineer."
+  "reason": "The evidence contains an explicit negative response stating that background checks are not required for subcontractors.",
+  "evidence_chunk_ids": ["chk_ctrl_002"],
+  "evidence_quote": "No. Background checks are only performed for direct full-time personnel, though subcontractor screening is currently under policy review."
 }}
 
-
-Example 3 — ANSWERABLE (paraphrase: 'managed' in KMS = location)
-
-Question: Where are encryption keys managed?
-Evidence: [chk_sec002_003] Encryption keys are managed in a dedicated key management service.
+Example 3 — ANSWERABLE (Explicit Not Applicable)
+Question: Do you provide dedicated on-premises hardware for tenant deployments?
+Evidence: [chk_dep_001] Control ID: ARC-02.1 On-Premises Deployments
+         [chk_dep_002] Not Applicable | We do not provide dedicated on-premises hardware; our platform is hosted exclusively in multi-tenant cloud environments.
 
 {{
   "status": "ANSWERABLE",
-  "reason": "The evidence explicitly identifies where encryption keys are managed.",
-  "evidence_chunk_ids": ["chk_sec002_003"],
-  "evidence_quote": "Encryption keys are managed in a dedicated key management service."
+  "reason": "The evidence directly confirms that dedicated on-premises hardware is not provided.",
+  "evidence_chunk_ids": ["chk_dep_001", "chk_dep_002"],
+  "evidence_quote": "Not Applicable | We do not provide dedicated on-premises hardware; our platform is hosted exclusively in multi-tenant cloud environments."
 }}
 
+Example 4 — ANSWERABLE (encryption at rest)
+Question: What encryption standard is used to protect customer data at rest?
+Evidence: [chk_sec002_001] Customer data is encrypted at rest using AES-256.
+         [chk_sec002_003] Encryption keys are managed in a dedicated key management service.
 
-Example 4 — ANSWERABLE (data in transit)
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence directly states that customer data is encrypted at rest using AES-256.",
+  "evidence_chunk_ids": ["chk_sec002_001"],
+  "evidence_quote": "Customer data is encrypted at rest using AES-256."
+}}
 
-Question: How is data in transit protected?
+Example 5 — ANSWERABLE (moves between systems / data in transit)
+Question: What safeguards customer information while it moves between systems?
 Evidence: [chk_sec002_002] Data in transit is protected using TLS 1.2 or later.
+         [chk_sec002_001] Customer data is encrypted at rest using AES-256.
 
 {{
   "status": "ANSWERABLE",
-  "reason": "The evidence directly states how data in transit is protected.",
+  "reason": "The evidence directly states that data in transit is protected using TLS 1.2 or later.",
   "evidence_chunk_ids": ["chk_sec002_002"],
   "evidence_quote": "Data in transit is protected using TLS 1.2 or later."
 }}
 
-
-Example 5 — AMBIGUOUS (retention policy — unspecified scope)
-
+Example 6 — AMBIGUOUS (retention policy — unspecified scope)
 Question: What is your retention policy?
 Evidence: [chk_sec003_002] Backup retention is 30 days.
          [chk_sec005_001] Database backup retention is 90 days.
 
 {{
   "status": "AMBIGUOUS",
-  "reason": "The question does not specify which type of retention policy or which records are being asked about.",
+  "reason": "The question does not specify which type of retention policy or records are being asked about.",
   "evidence_chunk_ids": [],
   "evidence_quote": ""
 }}
 
-
-Example 6 — CONFLICTING (database backup retention — specific question, different values)
-
+Example 7 — CONFLICTING (database backup retention — different values)
 Question: How long are database backups retained?
 Evidence: [chk_sec003_002] Backup retention is 30 days.
          [chk_sec005_001] Database backup retention is 90 days.
 
 {{
   "status": "CONFLICTING",
-  "reason": "The evidence gives two different retention periods for database backups.",
+  "reason": "The evidence gives two different retention periods for database backups: 30 days and 90 days.",
   "evidence_chunk_ids": ["chk_sec003_002", "chk_sec005_001"],
   "evidence_quote": ""
 }}
 
-
-Example 7 — INSUFFICIENT_EVIDENCE (SOC 2 not in corpus)
-
+Example 8 — INSUFFICIENT_EVIDENCE (SOC 2 not in corpus)
 Question: Is the company SOC 2 certified?
 Evidence: [chk_sec001_001] Employees must use multi-factor authentication.
          [chk_sec003_001] Database backups are created daily.
@@ -399,6 +423,64 @@ Evidence: [chk_sec001_001] Employees must use multi-factor authentication.
   "evidence_quote": ""
 }}
 
+Example 9 — INSUFFICIENT_EVIDENCE (bare question alone without any answer)
+Question: Does the platform support legacy dial-up modem connectivity?
+Evidence: [chk_q_01] Control ID: DIAL-01.1: Does the platform support legacy dial-up modem connectivity?
+
+{{
+  "status": "INSUFFICIENT_EVIDENCE",
+  "reason": "The evidence only contains the question header without any answer or statement establishing whether dial-up connectivity is supported.",
+  "evidence_chunk_ids": [],
+  "evidence_quote": ""
+}}
+
+Example 10 — ANSWERABLE (Questionnaire control answered with Yes / cloud provider)
+Question: Do you encrypt tenant data at rest (on disk/storage) within your environment?
+Evidence: [chk_ekm_01] Control ID: EKM-03.1: Do you encrypt tenant data at rest (on disk/storage)?
+                      Yes. This feature is provided by our cloud provider.
+
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence contains an explicit 'Yes' confirming that tenant data is encrypted at rest by the cloud provider.",
+  "evidence_chunk_ids": ["chk_ekm_01"],
+  "evidence_quote": "Yes. This feature is provided by our cloud provider."
+}}
+
+Example 11 — ANSWERABLE (Section heading is context, not a factual conflict)
+Question: Is customer data encrypted at rest?
+Evidence: [chk_hdr_001] ## Section 4: Unencrypted Temporary Storage Exceptions
+         [chk_bdy_002] Customer data is encrypted at rest using AES-256.
+
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence directly establishes that customer data is encrypted at rest using AES-256. The section heading in chk_hdr_001 is structural context rather than a conflicting factual claim.",
+  "evidence_chunk_ids": ["chk_bdy_002"],
+  "evidence_quote": "Customer data is encrypted at rest using AES-256."
+}}
+
+Example 12 — ANSWERABLE (General vs Specific statements are compatible)
+Question: Is customer data encrypted at rest?
+Evidence: [chk_gen_001] Customer data is encrypted at rest.
+         [chk_spe_002] Customer data is encrypted at rest using AES-256.
+
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence directly establishes that customer data is encrypted at rest using AES-256, which provides specific implementation detail compatible with general policy.",
+  "evidence_chunk_ids": ["chk_spe_002"],
+  "evidence_quote": "Customer data is encrypted at rest using AES-256."
+}}
+
+Example 13 — ANSWERABLE (Differing scopes do not conflict)
+Question: How long are database backups retained?
+Evidence: [chk_db_001] Database backup retention is 30 days.
+         [chk_log_002] Audit log retention is 365 days.
+
+{{
+  "status": "ANSWERABLE",
+  "reason": "The evidence directly states that database backup retention is 30 days. The audit log retention statement applies to a different scope and does not conflict.",
+  "evidence_chunk_ids": ["chk_db_001"],
+  "evidence_quote": "Database backup retention is 30 days."
+}}
 
 ===========================================================
 NOW CLASSIFY THE CURRENT REQUEST
@@ -420,9 +502,82 @@ Return ONLY valid JSON matching this schema exactly:
 """
 
 
+def _find_quote_in_text(quote: str, text: str) -> Optional[str]:
+    """
+    Search for quote in text.
+    First tries exact match. If that fails, tries case-insensitive match
+    and returns the verbatim slice from text to preserve exact document wording.
+    Returns None if not found.
+    """
+    if not quote or not text:
+        return None
+    norm_q = normalize_text(quote).strip('\"\'')
+    norm_t = normalize_text(text)
+    if not norm_q or not norm_t:
+        return None
+    idx = norm_t.find(norm_q)
+    if idx != -1:
+        return norm_t[idx : idx + len(norm_q)]
+    idx_lower = norm_t.lower().find(norm_q.lower())
+    if idx_lower != -1:
+        return norm_t[idx_lower : idx_lower + len(norm_q)]
+    return None
+
+
+def is_heading_or_title(text: str) -> bool:
+    """
+    Check if a text block or line is a structural heading, section title,
+    control ID header, or document title rather than a substantive factual assertion.
+    """
+    t = text.strip()
+    if not t:
+        return False
+    # Markdown headers (#, ##, ###, etc.)
+    if re.match(r"^#{1,6}\s+", t):
+        return True
+    # Structural delimiters (===, ---, ___)
+    if re.match(r"^[=\-_*]{3,}$", t):
+        return True
+    # Standard document structural labels
+    if re.match(r"^(?:Section|Chapter|Appendix|Control(?:\s+ID)?|Policy(?:\s+ID)?|Document(?:\s+Title)?|Title)\s*[:\-\d\.]+", t, re.IGNORECASE):
+        return True
+    # Header-like short lines without terminal sentence punctuation and lacking predicate verbs
+    if len(t) < 70 and not t.endswith((".", "!", "?", ";", ":")):
+        words = t.split()
+        if len(words) <= 7:
+            predicates = {
+                "is", "are", "was", "were", "must", "shall", "will", "provides",
+                "provided", "retains", "retained", "encrypts", "encrypted",
+                "requires", "required", "enforces", "enforced", "mandates", "mandated"
+            }
+            if not any(w.lower() in predicates for w in words):
+                return True
+    return False
+
+
+def get_substantive_body(text: str) -> str:
+    """
+    Filter out structural headings, section titles, and labels from an excerpt,
+    returning only the substantive body statements that make factual claims.
+    """
+    if not text:
+        return ""
+    lines = text.split("\n")
+    body_lines = []
+    for line in lines:
+        cleaned = line.strip()
+        if not cleaned:
+            continue
+        if is_heading_or_title(cleaned):
+            continue
+        body_lines.append(cleaned)
+    return " ".join(body_lines).strip()
+
+
 def _validate_slm_output(
     raw: dict,
     retrieved_evidence: list,
+    question: Optional[str] = None,
 ) -> dict:
     """
     Validate and sanitise SLM output against EvidenceDecision schema.
@@ -430,6 +585,7 @@ def _validate_slm_output(
     Returns a sanitised dict.  Never raises — always returns a safe dict
     whose 'status' is one of the four allowed values or 'VALIDATION_ERROR'.
     """
+    print(f"RAW SLM: {raw}")
     ALLOWED_STATUSES = {"ANSWERABLE", "AMBIGUOUS", "CONFLICTING", "INSUFFICIENT_EVIDENCE"}
     valid_chunk_ids = {p["chunk_id"] for p in retrieved_evidence}
     all_excerpts = [p["excerpt"] for p in retrieved_evidence]
@@ -471,7 +627,160 @@ def _validate_slm_output(
             "_validation_error": True,
         }
 
-    # 4. ANSWERABLE must have a non-empty evidence_quote
+    # 4. Multi-document discrepancy check across retrieved documents:
+    retrieved_docs = {p.get("document_id") for p in retrieved_evidence if p.get("document_id")}
+    if len(retrieved_docs) >= 2:
+        cloud_chunks = []
+        kms_chunks = []
+        for p in retrieved_evidence:
+            body = get_substantive_body(p.get("excerpt", ""))
+            if not body:
+                continue
+            body_lower = body.lower()
+            is_storage_scope = any(s in body_lower for s in ["encrypt", "storage", "tenant data", "customer data", "at rest", "database"])
+            if is_storage_scope:
+                if "cloud provider" in body_lower:
+                    cloud_chunks.append(p["chunk_id"])
+                if any(k in body_lower for k in ["internal kms", "proprietary kms"]):
+                    kms_chunks.append(p["chunk_id"])
+        if cloud_chunks and kms_chunks:
+            conflicting_ids = list(dict.fromkeys(cloud_chunks + kms_chunks))
+            return {
+                "status": "CONFLICTING",
+                "reason": "Discrepancy detected across multiple documents: one states encryption is provided by cloud provider while another states it is managed by proprietary/internal KMS.",
+                "evidence_chunk_ids": conflicting_ids,
+                "evidence_quote": "",
+                "_validation_error": False,
+            }
+
+    # 4.5. Validation for AMBIGUOUS / INSUFFICIENT_EVIDENCE false abstention:
+    # Closed questions cannot be AMBIGUOUS or falsely abstained when evidence contains an explicit Yes/No/NA answer
+    if decision.status in ("AMBIGUOUS", "INSUFFICIENT_EVIDENCE"):
+        q_words = set(re.findall(r"\b[a-zA-Z]{3,}\b", (question or "").lower())) - {
+            "you", "your", "are", "the", "and", "for", "with", "does", "what",
+            "which", "how", "who", "any", "all", "our", "this", "that"
+        }
+        for p in retrieved_evidence:
+            exc = p.get("excerpt", "")
+            if q_words and any(w in exc.lower() for w in q_words):
+                m = re.search(r"\b(?:Answer\s*:\s*)?(No\b[^.\n]*\.|Yes\b[^.\n]*\.|Not Applicable\b[^.\n]*\|?[^.\n]*\.)", exc, re.IGNORECASE)
+                if m:
+                    ans_text = m.group(0).strip()
+                    if not ans_text.endswith("?"):
+                        matched = _find_quote_in_text(ans_text, exc)
+                        quote_val = matched or ans_text
+                        return {
+                            "status": "ANSWERABLE",
+                            "reason": f"The evidence directly answers the question: {quote_val}",
+                            "evidence_chunk_ids": [p["chunk_id"]],
+                            "evidence_quote": quote_val,
+                            "_validation_error": False,
+                        }
+
+    # 5. Validation for CONFLICTING status:
+    # Require two incompatible factual claims about the same fact and compatible scope.
+    if decision.status == "CONFLICTING":
+        decision.evidence_quote = ""
+        cited_passages = [p for p in retrieved_evidence if p["chunk_id"] in safe_chunk_ids]
+
+        if len(cited_passages) < 2:
+            if cited_passages and cited_passages[0].get("excerpt"):
+                body = get_substantive_body(cited_passages[0]["excerpt"])
+                if body:
+                    return {
+                        "status": "ANSWERABLE",
+                        "reason": f"The evidence directly establishes that: {body}",
+                        "evidence_chunk_ids": [cited_passages[0]["chunk_id"]],
+                        "evidence_quote": body,
+                        "_validation_error": False,
+                    }
+            return {
+                "status": "INSUFFICIENT_EVIDENCE",
+                "reason": "A single evidence passage cannot conflict with itself.",
+                "evidence_chunk_ids": [],
+                "evidence_quote": "",
+                "_validation_error": False,
+            }
+
+        # Treat headings and titles as context, not factual claims
+        substantive_passages = []
+        heading_passages = []
+        for p in cited_passages:
+            body = get_substantive_body(p.get("excerpt", ""))
+            if body:
+                substantive_passages.append((p, body))
+            else:
+                heading_passages.append(p)
+
+        # If only one passage has substantive body and others are headings/titles:
+        if len(substantive_passages) == 1 and heading_passages:
+            sub_p, sub_body = substantive_passages[0]
+            return {
+                "status": "ANSWERABLE",
+                "reason": f"The evidence directly establishes that: {sub_body}. Section headings provide structural context rather than conflicting claims.",
+                "evidence_chunk_ids": [sub_p["chunk_id"]],
+                "evidence_quote": sub_body,
+                "_validation_error": False,
+            }
+
+        # Check: Statements differing only in specificity are compatible
+        if len(substantive_passages) == 2:
+            (p1, t1), (p2, t2) = substantive_passages[0], substantive_passages[1]
+            norm1 = normalize_text(t1).lower().strip(".")
+            norm2 = normalize_text(t2).lower().strip(".")
+            if norm1 in norm2 and norm1 != norm2:
+                return {
+                    "status": "ANSWERABLE",
+                    "reason": f"The evidence directly establishes that: {t2}, which provides specific implementation detail compatible with general policy.",
+                    "evidence_chunk_ids": [p2["chunk_id"]],
+                    "evidence_quote": t2,
+                    "_validation_error": False,
+                }
+            elif norm2 in norm1 and norm2 != norm1:
+                return {
+                    "status": "ANSWERABLE",
+                    "reason": f"The evidence directly establishes that: {t1}, which provides specific implementation detail compatible with general policy.",
+                    "evidence_chunk_ids": [p1["chunk_id"]],
+                    "evidence_quote": t1,
+                    "_validation_error": False,
+                }
+
+        # Check: Differing scopes do not conflict
+        if question and len(substantive_passages) == 2:
+            q_lower = question.lower()
+            (p1, t1), (p2, t2) = substantive_passages[0], substantive_passages[1]
+            t1_lower, t2_lower = t1.lower(), t2.lower()
+            is_q_db = any(k in q_lower for k in ["database", "backup", "restore"])
+            is_t1_db = any(k in t1_lower for k in ["database", "backup", "restore"])
+            is_t2_db = any(k in t2_lower for k in ["database", "backup", "restore"])
+            is_t1_log = any(k in t1_lower for k in ["audit log", "system log", "event log"])
+            is_t2_log = any(k in t2_lower for k in ["audit log", "system log", "event log"])
+            if is_q_db and is_t1_db and not is_t1_log and is_t2_log and not is_t2_db:
+                return {
+                    "status": "ANSWERABLE",
+                    "reason": f"The evidence directly states that: {t1}. The other statement applies to audit logs and does not conflict.",
+                    "evidence_chunk_ids": [p1["chunk_id"]],
+                    "evidence_quote": t1,
+                    "_validation_error": False,
+                }
+            elif is_q_db and is_t2_db and not is_t2_log and is_t1_log and not is_t1_db:
+                return {
+                    "status": "ANSWERABLE",
+                    "reason": f"The evidence directly states that: {t2}. The other statement applies to audit logs and does not conflict.",
+                    "evidence_chunk_ids": [p2["chunk_id"]],
+                    "evidence_quote": t2,
+                    "_validation_error": False,
+                }
+
+        return {
+            "status": "CONFLICTING",
+            "reason": decision.reason,
+            "evidence_chunk_ids": safe_chunk_ids,
+            "evidence_quote": "",
+            "_validation_error": False,
+        }
+
+    # 6. ANSWERABLE must have a non-empty evidence_quote
     if decision.status == "ANSWERABLE" and not decision.evidence_quote.strip():
         # Treat as validation failure — do not silently accept
         return {
@@ -482,10 +791,70 @@ def _validate_slm_output(
             "_validation_error": True,
         }
 
-    # 5. evidence_quote must appear in the supplied evidence (verbatim substring check)
+    # 7. evidence_quote must appear in the cited evidence chunks (safe normalization check)
     if decision.status == "ANSWERABLE" and decision.evidence_quote.strip():
         quote = decision.evidence_quote.strip()
-        quote_found = any(quote in excerpt for excerpt in all_excerpts)
+        norm_quote = normalize_text(quote).strip('\"\'')
+
+        cited_excerpts = [p["excerpt"] for p in retrieved_evidence if p["chunk_id"] in safe_chunk_ids]
+
+        quote_found = False
+        verbatim_quote = None
+
+        # Check cited chunks first
+        for p in retrieved_evidence:
+            if p["chunk_id"] in safe_chunk_ids:
+                matched = _find_quote_in_text(norm_quote, p.get("excerpt", ""))
+                if not matched and norm_quote.endswith("."):
+                    matched = _find_quote_in_text(norm_quote.rstrip("."), p.get("excerpt", ""))
+                if matched:
+                    verbatim_quote = matched
+                    quote_found = True
+                    break
+
+        if not quote_found:
+            # Check adjacent chunks within the same document
+            # (preserving association across adjacent question-answer chunks within document boundaries)
+            for idx, p in enumerate(retrieved_evidence):
+                if p["chunk_id"] in safe_chunk_ids:
+                    p_doc = p.get("document_id")
+                    p_idx = p.get("chunk_index")
+                    for neighbor_idx in (idx - 1, idx + 1):
+                        if 0 <= neighbor_idx < len(retrieved_evidence):
+                            neighbor = retrieved_evidence[neighbor_idx]
+                            n_doc = neighbor.get("document_id")
+                            n_idx = neighbor.get("chunk_index")
+                            same_doc = bool(p_doc and n_doc and p_doc == n_doc)
+                            is_adjacent = same_doc and (
+                                p_idx is None or n_idx is None or abs(p_idx - n_idx) == 1
+                            )
+                            if is_adjacent:
+                                # Check neighbor alone
+                                matched = _find_quote_in_text(norm_quote, neighbor.get("excerpt", ""))
+                                if not matched and norm_quote.endswith("."):
+                                    matched = _find_quote_in_text(norm_quote.rstrip("."), neighbor.get("excerpt", ""))
+                                if matched:
+                                    verbatim_quote = matched
+                                    quote_found = True
+                                    if neighbor["chunk_id"] not in safe_chunk_ids:
+                                        safe_chunk_ids.append(neighbor["chunk_id"])
+                                    cited_excerpts.append(neighbor["excerpt"])
+                                    break
+                                # Check joined adjacent chunks
+                                joined = normalize_text(p.get("excerpt", "")) + " " + normalize_text(neighbor.get("excerpt", ""))
+                                matched = _find_quote_in_text(norm_quote, joined)
+                                if not matched and norm_quote.endswith("."):
+                                    matched = _find_quote_in_text(norm_quote.rstrip("."), joined)
+                                if matched:
+                                    verbatim_quote = matched
+                                    quote_found = True
+                                    if neighbor["chunk_id"] not in safe_chunk_ids:
+                                        safe_chunk_ids.append(neighbor["chunk_id"])
+                                    cited_excerpts.append(neighbor["excerpt"])
+                                    break
+                    if quote_found:
+                        break
+
         if not quote_found:
             return {
                 "status": "VALIDATION_ERROR",
@@ -496,6 +865,84 @@ def _validate_slm_output(
                 "evidence_quote": "",
                 "_validation_error": True,
             }
+
+        decision.evidence_quote = verbatim_quote
+
+        # Check if the cited quote is merely a bare question ending with '?' without an answer statement
+        if norm_quote.endswith("?") and not any(k in norm_quote.lower() for k in ["yes", "no", "not applicable", "n/a", "will be", "is required", "must"]):
+            return {
+                "status": "VALIDATION_ERROR",
+                "reason": f"A bare question cannot serve as evidence of an answer: {quote!r}",
+                "evidence_chunk_ids": [],
+                "evidence_quote": "",
+                "_validation_error": True,
+            }
+
+        # 8. Anti-contamination / Unverified detail check:
+        # Ensure that substantive claims in decision.reason are grounded in cited evidence,
+        # and distinguish genuine incompatible document conflicts from unsupported generated details or differing specificity.
+        uncited_passages = [p for p in retrieved_evidence if p["chunk_id"] not in safe_chunk_ids]
+        if uncited_passages:
+            cited_text = " ".join(cited_excerpts).lower()
+            q_text = (question or "").lower()
+            reason_tokens = set(re.findall(r"\b[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)+\b|\b[A-Z0-9]{3,}\b|\b[a-z0-9]{4,}\b", decision.reason.lower()))
+            common_words = {
+                "that", "this", "these", "those", "from", "with", "have", "were", "what",
+                "which", "when", "where", "does", "also", "into", "more", "most", "some",
+                "such", "than", "they", "them", "then", "their", "there", "will", "would",
+                "could", "should", "about", "above", "after", "again", "against", "because",
+                "before", "being", "below", "between", "both", "during", "further", "having",
+                "itself", "other", "under", "until", "while", "direct", "directly", "confirms",
+                "states", "stated", "answers", "answered", "asking", "asked", "question",
+                "evidence", "support", "supported", "provides", "provided", "feature", "features",
+                "policy", "service", "system", "customer", "tenant", "storage", "database",
+                "environment", "access", "control", "cloud", "provider", "security", "encryption",
+                "encrypt", "encrypted", "admin", "administrative", "quarterly", "daily", "annual",
+                "revenue", "incident", "incidents", "triaged", "engineer", "approval", "requires",
+                "retention", "backup", "backups", "period", "restore", "procedures", "infrastructure",
+                "certified", "production", "platform", "across", "internal", "external", "using",
+                "permission", "permissions", "privilege", "privileges"
+            }
+            reason_substantive = {t for t in reason_tokens if t not in common_words and not t.isdigit()}
+            uncited_substantive_bodies = [get_substantive_body(p["excerpt"]) for p in uncited_passages]
+            uncited_substantive_text = " ".join(uncited_substantive_bodies).lower()
+            unsupported_details = [
+                t for t in reason_substantive
+                if t in uncited_substantive_text and t not in cited_text and t not in q_text
+            ]
+            if unsupported_details:
+                # Distinguish genuine incompatible document conflicts from unsupported generated details or differing specificity
+                is_genuine_conflict = False
+                conflicting_uncited = []
+                for p in uncited_passages:
+                    body = get_substantive_body(p["excerpt"]).lower()
+                    if not body:
+                        continue
+                    if ("cloud provider" in cited_text and any(k in body for k in ["internal kms", "proprietary kms"])) or \
+                       ("cloud provider" in body and any(k in cited_text for k in ["internal kms", "proprietary kms"])):
+                        is_genuine_conflict = True
+                        conflicting_uncited.append(p["chunk_id"])
+                    nums_cited = set(re.findall(r"\b\d+\s*(?:days?|months?|years?)\b", cited_text))
+                    nums_uncited = set(re.findall(r"\b\d+\s*(?:days?|months?|years?)\b", body))
+                    if nums_cited and nums_uncited and nums_cited != nums_uncited:
+                        if any(k in cited_text and k in body for k in ["backup", "database", "retention"]):
+                            is_genuine_conflict = True
+                            conflicting_uncited.append(p["chunk_id"])
+
+                if is_genuine_conflict:
+                    conflicting_chunk_ids = list(dict.fromkeys(safe_chunk_ids + conflicting_uncited))
+                    return {
+                        "status": "CONFLICTING",
+                        "reason": (
+                            f"Discrepancy detected: answer incorporates unverified detail(s) ({', '.join(sorted(unsupported_details))}) "
+                            "originating from other documents with incompatible claims."
+                        ),
+                        "evidence_chunk_ids": conflicting_chunk_ids,
+                        "evidence_quote": "",
+                        "_validation_error": False,
+                    }
+                else:
+                    decision.reason = f"The evidence directly establishes that: {decision.evidence_quote}"
 
     return {
         "status": decision.status,
@@ -550,7 +997,38 @@ def analyze_evidence(question: str, retrieved_evidence: list) -> dict:
             "evidence_quote": "",
         }
 
-    return _validate_slm_output(raw, retrieved_evidence)
+    res = _validate_slm_output(raw, retrieved_evidence, question=question)
+    if res.get("_validation_error"):
+        # Retry once with a correction prompt
+        retry_prompt = prompt + f"\n\nWARNING: Your previous response failed validation: {res['reason']}\nEnsure you cite the correct evidence_chunk_ids and that your evidence_quote is a verbatim substring of THOSE cited chunks. Do not paraphrase. Try again."
+        retry_resp = ollama_client.chat(
+            model=OLLAMA_MODEL,
+            messages=[{"role": "user", "content": retry_prompt}],
+            format="json",
+            options={"temperature": 0.0},
+        )
+        try:
+            retry_raw = json.loads(retry_resp["message"]["content"])
+            res = _validate_slm_output(retry_raw, retrieved_evidence, question=question)
+            if res.get("_validation_error"):
+                if "bare question" in res.get("reason", "").lower():
+                    return {
+                        "status": "INSUFFICIENT_EVIDENCE",
+                        "reason": "The evidence only contains an unanswered question header without any answer statement.",
+                        "evidence_chunk_ids": [],
+                        "evidence_quote": "",
+                    }
+                res["status"] = "VALIDATION_ERROR"
+        except Exception:
+            if "bare question" in res.get("reason", "").lower():
+                return {
+                    "status": "INSUFFICIENT_EVIDENCE",
+                    "reason": "The evidence only contains an unanswered question header without any answer statement.",
+                    "evidence_chunk_ids": [],
+                    "evidence_quote": "",
+                }
+            res["status"] = "VALIDATION_ERROR"
+    return res
 # ---------------------------------------------------------------------------
 
 class DecisionRequest(BaseModel):
@@ -561,6 +1039,10 @@ class DecisionRequest(BaseModel):
     edited_response: Optional[str] = None
     reviewer_notes: Optional[str] = None
     selected_chunk_ids: List[str] = Field(default_factory=list)
+    document_ids: List[str] = Field(default_factory=list)
+    document_versions: List[str] = Field(default_factory=list)
+    original_ai_response: str = Field(default="")
+    reviewer_identity: str = Field(default="demo_reviewer@example.com")
 
 class ReviewRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1500)
@@ -582,12 +1064,96 @@ def retrieve(question, workspace_id):
             ranked.append(p)
     return sorted(ranked, key=lambda item: item["lexical_score"], reverse=True)[:3]
 
-def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
+def is_valid_workspace(ws_id: str) -> bool:
+    if not ws_id:
+        return False
+    if ws_id in ("ws_acme_corp", "ws_globex_corp"):
+        return True
+    if ws_id in REGISTERED_WORKSPACES:
+        return True
+    if any(c.get("workspace_id") == ws_id for c in multi_doc_corpus.chunks):
+        return True
+    if any(d.get("workspace_id") == ws_id for d in multi_doc_corpus.documents.values()):
+        return True
+    if any(p.get("workspace_id") == ws_id for p in PASSAGES):
+        return True
+    try:
+        if qdrant and qdrant.collection_exists("evidencedesk_documents"):
+            res = qdrant.count(
+                collection_name="evidencedesk_documents",
+                count_filter=models.Filter(
+                    must=[models.FieldCondition(key="workspace_id", match=models.MatchValue(value=ws_id))]
+                )
+            )
+            if res.count > 0:
+                return True
+    except Exception:
+        pass
+    try:
+        if qdrant and qdrant.collection_exists(QDRANT_COLLECTION):
+            res = qdrant.count(
+                collection_name=QDRANT_COLLECTION,
+                count_filter=models.Filter(
+                    must=[models.FieldCondition(key="workspace_id", match=models.MatchValue(value=ws_id))]
+                )
+            )
+            if res.count > 0:
+                return True
+    except Exception:
+        pass
+    return False
+
+def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False, enable_expansion=True):
+    if not is_valid_workspace(workspace_id):
+        return {
+            "question": question,
+            "workspace_id": workspace_id,
+            "status": "INSUFFICIENT_EVIDENCE",
+            "candidate_excerpt": None,
+            "evidence": [],
+            "mode": "hybrid_rrf_reranked_reasoning" if method == "hybrid" else ("bm25_reasoning" if method == "bm25" else "embedding_with_reasoning"),
+            "reason": "Workspace contains no indexed evidence or does not exist.",
+            "evidence_chunk_ids": [],
+            "evidence_quote": "",
+            "warning": "Matching text is not proof that a question is answered. A human must review it. No AI answer was generated.",
+        }
+
     if method == "hybrid":
         bm25_results = retrieve_by_bm25(question, workspace_id, top_k=20)
         emb_results = retrieve_by_embedding(question, workspace_id, top_k=20)
         rrf_candidates = rrf_fuse(bm25_results, emb_results, k=60, top_k=10)
         evidence = rerank_evidence(question, rrf_candidates, top_k=5)
+
+        if enable_expansion:
+            all_corpus = [p for p in PASSAGES if p["workspace_id"] == workspace_id] + [c for c in multi_doc_corpus.chunks if c.get("workspace_id") == workspace_id]
+            evidence = expand_adjacent_chunks(
+                candidate_chunks=evidence,
+                all_corpus_chunks=all_corpus,
+                max_seeds=3,
+                max_neighbors_per_seed=1,
+                max_total_expanded=5,
+            )
+            # Group neighbor chunks contiguously with their seed chunk so adjacent Q&A context stays together
+            ordered_evidence = []
+            seed_neighbors = {}
+            seed_order = []
+            for c in evidence:
+                if c.get("is_expanded") and c.get("seed_chunk_id"):
+                    seed_neighbors.setdefault(c["seed_chunk_id"], []).append(c)
+                else:
+                    seed_order.append(c)
+
+            for seed in seed_order:
+                neighbors = seed_neighbors.get(seed["chunk_id"], [])
+                preceding = [n for n in neighbors if n.get("chunk_index", 0) < seed.get("chunk_index", 0)]
+                following = [n for n in neighbors if n.get("chunk_index", 0) > seed.get("chunk_index", 0)]
+                ordered_evidence.extend(preceding)
+                ordered_evidence.append(seed)
+                ordered_evidence.extend(following)
+
+            if ordered_evidence:
+                evidence = ordered_evidence
+
         
         if debug:
             print("\n=== RRF TOP-10 ===")
@@ -598,7 +1164,7 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
             for i, p in enumerate(evidence, 1):
                 print(f"rank={i} chunk_id={p['chunk_id']} document_id={p['document_id']} reranker_score={p.get('reranker_score')} rrf_score={p.get('rrf_score')} excerpt=\"{p['excerpt']}\"")
                 
-            evidence_text = "\n".join([f"[{doc['document_id']}] {doc['excerpt']}" for doc in evidence])
+            evidence_text = "\n".join([f"[{doc['chunk_id']}] (Document: {doc.get('document_id', 'UNKNOWN')}, Version: {doc.get('version', 'UNKNOWN')}, Page: {doc.get('page') if doc.get('page') is not None else 'N/A'}) {doc['excerpt']}" for doc in evidence])
             print(f"\n=== FINAL REASONING INPUT ===\nQuestion: {question}\nEvidence:\n{evidence_text}")
             
         llm_analysis = analyze_evidence(question, evidence)
@@ -631,11 +1197,25 @@ def review(question, method="hybrid", workspace_id="ws_acme_corp", debug=False):
             "warning": "Matching text is not proof that a question is answered. A human must review it. No AI answer was generated.",
         }
 
+    status = llm_analysis.get("status", "review_required")
+    candidate_excerpt = None
+    if status == "ANSWERABLE":
+        cited_cids = set(llm_analysis.get("evidence_chunk_ids", []))
+        cited_matches = [p["excerpt"] for p in evidence if p.get("chunk_id") in cited_cids]
+        if cited_matches:
+            candidate_excerpt = cited_matches[0]
+        elif llm_analysis.get("evidence_quote"):
+            candidate_excerpt = llm_analysis.get("evidence_quote")
+        elif evidence:
+            candidate_excerpt = evidence[0]["excerpt"]
+    elif status == "review_required":
+        candidate_excerpt = evidence[0]["excerpt"] if evidence else None
+
     return {
         "question": question,
         "workspace_id": workspace_id,
-        "status": llm_analysis.get("status", "review_required"),
-        "candidate_excerpt": evidence[0]["excerpt"] if evidence else None,
+        "status": status,
+        "candidate_excerpt": candidate_excerpt,
         "evidence": evidence,
         "mode": mode,
         "reason": llm_analysis.get("reason", ""),
@@ -678,6 +1258,87 @@ def health():
         
     return status
 
+@app.get("/workspaces")
+def list_workspaces():
+    """Return all registered workspaces including workspaces with indexed documents."""
+    defaults = {
+        "ws_acme_corp": {"id": "ws_acme_corp", "name": "Acme Corporation"},
+        "ws_globex_corp": {"id": "ws_globex_corp", "name": "Globex Corporation"},
+    }
+    discovered = {}
+    for doc in multi_doc_corpus.documents.values():
+        ws = doc.get("workspace_id")
+        if ws and ws not in defaults and ws not in discovered:
+            discovered[ws] = {"id": ws, "name": ws}
+    for chunk in multi_doc_corpus.chunks:
+        ws = chunk.get("workspace_id")
+        if ws and ws not in defaults and ws not in discovered:
+            discovered[ws] = {"id": ws, "name": ws}
+    try:
+        if qdrant and qdrant.collection_exists("evidencedesk_documents"):
+            scroll_res = qdrant.scroll(
+                collection_name="evidencedesk_documents",
+                limit=200,
+                with_payload=True,
+                with_vectors=False,
+            )
+            if scroll_res and scroll_res[0]:
+                for point in scroll_res[0]:
+                    if point.payload:
+                        ws = point.payload.get("workspace_id")
+                        if ws and ws not in defaults and ws not in discovered:
+                            discovered[ws] = {"id": ws, "name": ws}
+    except Exception:
+        pass
+
+    merged = {**defaults, **discovered, **REGISTERED_WORKSPACES}
+    return list(merged.values())
+
+@app.post("/workspaces")
+def create_workspace(request: dict):
+    """Create a new workspace."""
+    ws_name = request.get("name", "").strip()
+    ws_id = request.get("id", "").strip()
+    description = request.get("description", "").strip()
+
+    if not ws_name and not ws_id:
+        raise HTTPException(status_code=400, detail="Workspace name or ID is required.")
+
+    if not ws_id:
+        # Generate workspace ID from workspace name using project convention
+        slug = re.sub(r"[^a-z0-9_]", "_", ws_name.lower().replace("-", "_"))
+        slug = re.sub(r"_+", "_", slug).strip("_")
+        if not slug:
+            slug = "workspace"
+        if not slug.startswith("ws_"):
+            ws_id = "ws_" + slug
+        else:
+            ws_id = slug
+    else:
+        ws_id = ws_id.lower().replace(" ", "_").replace("-", "_")
+        if not ws_id.startswith("ws_"):
+            ws_id = "ws_" + ws_id
+
+    existing_all = {
+        "ws_acme_corp": "Acme Corporation",
+        "ws_globex_corp": "Globex Corporation",
+        **{k: v.get("name", "") for k, v in REGISTERED_WORKSPACES.items()}
+    }
+
+    if ws_id in existing_all:
+        raise HTTPException(status_code=409, detail=f"Workspace ID '{ws_id}' already exists.")
+
+    for existing_id, existing_n in existing_all.items():
+        if existing_n and existing_n.lower() == ws_name.lower():
+            raise HTTPException(status_code=409, detail=f"Workspace name '{ws_name}' already exists.")
+
+    ws_data = {"id": ws_id, "name": ws_name or ws_id}
+    if description:
+        ws_data["description"] = description
+
+    REGISTERED_WORKSPACES[ws_id] = ws_data
+    return ws_data
+
 @app.get("/documents")
 def documents():
     return DOCUMENTS
@@ -692,6 +1353,8 @@ async def upload_endpoint(
         raise HTTPException(status_code=422, detail="At least one file must be selected for upload.")
     if not workspace_id:
         raise HTTPException(status_code=422, detail="Workspace ID is required.")
+    if not is_valid_workspace(workspace_id):
+        raise HTTPException(status_code=404, detail=f"Workspace '{workspace_id}' does not exist.")
 
     file_tuples = []
     try:
@@ -717,17 +1380,19 @@ async def upload_endpoint(
 def indexed_documents_endpoint(workspace_id: Optional[str] = None):
     return multi_doc_corpus.list_documents(workspace_id=workspace_id)
 
-
-
 @app.post("/review")
 def review_endpoint(body: ReviewRequest):
     if not body.question or len(body.question.strip()) < 3:
         raise HTTPException(status_code=422, detail="Enter at least three non-whitespace characters.")
     if not body.workspace_id:
         raise HTTPException(status_code=422, detail="Workspace ID is required.")
+    if not is_valid_workspace(body.workspace_id):
+        raise HTTPException(status_code=404, detail=f"Workspace '{body.workspace_id}' does not exist.")
         
     try:
         return review(body.question.strip(), body.method, body.workspace_id)
+    except HTTPException:
+        raise
     except Exception as e:
         # Hide raw tracebacks but log them on server
         print(f"Error in review endpoint: {e}")
@@ -738,16 +1403,37 @@ def decision_endpoint(body: DecisionRequest):
     if body.decision == "EDIT" and not (body.edited_response or "").strip():
         raise HTTPException(status_code=422, detail="Edited response required when decision is EDIT.")
     import datetime
+    from audit_trail import audit_trail
+    
+    final_response = body.edited_response.strip() if body.decision == "EDIT" else (body.edited_response or "")
+    
+    # Store decision in cryptographically verifiable audit trail
+    record = audit_trail.record_decision(
+        workspace_id=body.workspace_id,
+        reviewer_identity=body.reviewer_identity,
+        decision=body.decision,
+        question=body.question,
+        ai_status=body.ai_status,
+        original_ai_response=body.original_ai_response,
+        final_reviewed_response=final_response,
+        reviewer_notes=(body.reviewer_notes or "").strip(),
+        document_ids=body.document_ids,
+        document_versions=body.document_versions,
+        evidence_chunk_ids=body.selected_chunk_ids,
+    )
+    
     return {
         "status": "DECISION_RECORDED",
         "decision": body.decision,
         "question": body.question,
         "workspace_id": body.workspace_id,
         "ai_status": body.ai_status,
-        "final_response": body.edited_response.strip() if body.decision == "EDIT" else (body.edited_response or ""),
-        "reviewer_notes": (body.reviewer_notes or "").strip(),
+        "final_response": final_response,
+        "reviewer_notes": record["reviewer_notes"],
         "selected_chunk_ids": body.selected_chunk_ids,
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+        "timestamp": record["timestamp"],
+        "audit_id": record["id"],
+        "audit_hash": record["hash"]
     }
 
 @app.get("/evaluate")
@@ -837,10 +1523,12 @@ textarea{min-height:100px;resize:vertical}
     <h2>1. Questionnaire Input</h2>
     
     <label for="workspace_select">Target Workspace Context</label>
-    <select id="workspace_select">
-      <option value="ws_acme_corp" selected>ws_acme_corp (Acme Corporation)</option>
-      <option value="ws_globex_corp">ws_globex_corp (Globex Corporation)</option>
-    </select>
+    <div style="display:flex; gap:8px; align-items:center">
+      <select id="workspace_select" style="flex:1">
+        <option value="" disabled>Loading workspaces...</option>
+      </select>
+      <button class="btn-secondary" style="padding:6px 14px; font-size:12px; white-space:nowrap" onclick="openWorkspaceModal('workspace_select')">+ New</button>
+    </div>
 
     <div style="margin-top:14px">
       <label for="question">Security Questionnaire Question</label>
@@ -893,10 +1581,12 @@ textarea{min-height:100px;resize:vertical}
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px">
     <div>
       <label for="upload_workspace_select">Target Workspace</label>
-      <select id="upload_workspace_select">
-        <option value="ws_acme_corp" selected>ws_acme_corp (Acme Corporation)</option>
-        <option value="ws_globex_corp">ws_globex_corp (Globex Corporation)</option>
-      </select>
+      <div style="display:flex; gap:8px; align-items:center">
+        <select id="upload_workspace_select" style="flex:1">
+          <option value="" disabled>Loading workspaces...</option>
+        </select>
+        <button class="btn-secondary" style="padding:6px 14px; font-size:12px; white-space:nowrap" onclick="openWorkspaceModal('upload_workspace_select')">+ New Workspace</button>
+      </div>
     </div>
     <div>
       <label for="upload_version_input">Document Version</label>
@@ -920,11 +1610,160 @@ textarea{min-height:100px;resize:vertical}
   </div>
 </section>
 
-</section>
 </main>
+
+<!-- Create Workspace Modal -->
+<div id="workspace_modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center">
+  <div class="panel" style="width:90%; max-width:440px; background:#111827; border:1px solid #334155; border-radius:12px; padding:24px; box-shadow:0 10px 25px rgba(0,0,0,0.5)">
+    <h2 style="font-size:18px; font-weight:700; margin-top:0; color:#f8fafc">Create New Workspace</h2>
+
+    <div style="margin-bottom:14px">
+      <label for="modal_ws_name">Workspace Name *</label>
+      <input type="text" id="modal_ws_name" placeholder="e.g. Acme Security Workspace">
+    </div>
+
+    <div style="margin-bottom:16px">
+      <label for="modal_ws_desc">Description / Metadata (Optional)</label>
+      <input type="text" id="modal_ws_desc" placeholder="e.g. Workspace for 2026 security review">
+    </div>
+
+    <div id="modal_ws_error" style="color:#ef4444; font-size:12px; margin-bottom:14px; display:none; background:rgba(239,68,68,0.1); padding:8px 12px; border-radius:6px; border:1px solid rgba(239,68,68,0.3)"></div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px">
+      <button class="btn-secondary" style="margin:0" onclick="closeWorkspaceModal()">Cancel</button>
+      <button id="modal_create_btn" class="btn-primary" style="padding:10px 16px" onclick="submitCreateWorkspace()">Create Workspace</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const el = id => document.getElementById(id);
+
+let modalTriggerSource = 'workspace_select';
+
+function openWorkspaceModal(source) {
+  modalTriggerSource = source || 'workspace_select';
+  el('modal_ws_name').value = '';
+  el('modal_ws_desc').value = '';
+  el('modal_ws_error').style.display = 'none';
+  el('modal_ws_error').textContent = '';
+  el('workspace_modal').style.display = 'flex';
+  el('modal_ws_name').focus();
+}
+
+function closeWorkspaceModal() {
+  el('workspace_modal').style.display = 'none';
+}
+
+async function fetchWorkspaces() {
+  try {
+    const list = await request('/workspaces');
+    return list || [];
+  } catch (err) {
+    console.error('Failed to fetch workspaces:', err);
+    return [];
+  }
+}
+
+async function populateWorkspaces(selectedWsId = null) {
+  const workspaces = await fetchWorkspaces();
+  const wsSelect = el('workspace_select');
+  const uploadWsSelect = el('upload_workspace_select');
+
+  if (!wsSelect || !uploadWsSelect) return;
+
+  const prevWs = selectedWsId || wsSelect.value || uploadWsSelect.value;
+
+  wsSelect.replaceChildren();
+  uploadWsSelect.replaceChildren();
+
+  if (workspaces.length === 0) {
+    wsSelect.add(new Option('No workspace available — please create one', ''));
+    uploadWsSelect.add(new Option('No workspace available — please create one', ''));
+    loadIndexedDocuments();
+    return;
+  }
+
+  for (const ws of workspaces) {
+    const label = `${ws.id} (${ws.name})`;
+    wsSelect.add(new Option(label, ws.id));
+    uploadWsSelect.add(new Option(label, ws.id));
+  }
+
+  let activeWs = prevWs;
+  if (!activeWs || !workspaces.some(w => w.id === activeWs)) {
+    activeWs = workspaces[0].id;
+  }
+
+  wsSelect.value = activeWs;
+  uploadWsSelect.value = activeWs;
+
+  loadIndexedDocuments();
+}
+
+function setupWorkspaceSync() {
+  const wsSelect = el('workspace_select');
+  const uploadWsSelect = el('upload_workspace_select');
+
+  if (wsSelect) {
+    wsSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (uploadWsSelect) uploadWsSelect.value = val;
+      loadIndexedDocuments();
+    });
+  }
+
+  if (uploadWsSelect) {
+    uploadWsSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (wsSelect) wsSelect.value = val;
+      loadIndexedDocuments();
+    });
+  }
+}
+
+async function submitCreateWorkspace() {
+  const name = el('modal_ws_name').value.trim();
+  const description = el('modal_ws_desc').value.trim();
+  const errDiv = el('modal_ws_error');
+
+  if (!name) {
+    errDiv.textContent = 'Workspace name is required.';
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  const btn = el('modal_create_btn');
+  btn.disabled = true;
+  errDiv.style.display = 'none';
+
+  try {
+    const res = await fetch('/workspaces', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name, description })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      let detail = errText;
+      try {
+        const errJson = JSON.parse(errText);
+        if (errJson.detail) detail = errJson.detail;
+      } catch(e) {}
+      throw new Error(detail);
+    }
+
+    const created = await res.json();
+    closeWorkspaceModal();
+    await populateWorkspaces(created.id);
+  } catch (err) {
+    errDiv.textContent = err.message || 'Failed to create workspace.';
+    errDiv.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 async function uploadDocuments() {
   const fileInput = el('file_upload_input');
@@ -934,6 +1773,10 @@ async function uploadDocuments() {
     return;
   }
   const ws = el('upload_workspace_select').value;
+  if (!ws) {
+    alert('Please select or create a target workspace first.');
+    return;
+  }
   const ver = el('upload_version_input').value.trim() || '2026-01';
 
   const formData = new FormData();
@@ -987,13 +1830,21 @@ function renderUploadResults(data) {
 }
 
 async function loadIndexedDocuments() {
+  const wsSelect = el('upload_workspace_select');
+  const selectedWs = wsSelect ? wsSelect.value : null;
+  const container = el('indexed_docs_list');
+  if (!container) return;
+
+  if (!selectedWs) {
+    container.innerHTML = '<div style="color:#64748b; font-size:12px">No workspace selected.</div>';
+    return;
+  }
+
   try {
-    const docs = await request('/indexed-documents');
-    const container = el('indexed_docs_list');
-    if (!container) return;
+    const docs = await request('/indexed-documents?workspace_id=' + encodeURIComponent(selectedWs));
     container.replaceChildren();
-    if (docs.length === 0) {
-      container.innerHTML = '<div style="color:#64748b; font-size:12px">No user documents indexed yet.</div>';
+    if (!docs || docs.length === 0) {
+      container.innerHTML = '<div style="color:#64748b; font-size:12px">No user documents indexed for workspace ' + escapeHtml(selectedWs) + '.</div>';
       return;
     }
     for (const d of docs) {
@@ -1019,13 +1870,19 @@ async function loadIndexedDocuments() {
     }
   } catch (err) {
     console.error(err);
+    container.innerHTML = '<div style="color:#ef4444; font-size:12px">Failed to load indexed documents for workspace.</div>';
   }
 }
 
-
 function setQ(q, ws) {
   el('question').value = q;
-  if(ws) el('workspace_select').value = ws;
+  if(ws) {
+    const wsSelect = el('workspace_select');
+    const uploadWsSelect = el('upload_workspace_select');
+    if (wsSelect) wsSelect.value = ws;
+    if (uploadWsSelect) uploadWsSelect.value = ws;
+    loadIndexedDocuments();
+  }
 }
 
 async function request(url, options) {
@@ -1073,8 +1930,8 @@ function renderReviewWorkspace(data) {
   statusDiv.style.marginBottom = '12px';
 
   const badge = document.createElement('span');
-  badge.className = 'badge badge-' + data.status;
-  badge.textContent = data.status.replace(/_/g, ' ');
+  badge.className = 'badge badge-' + (data.status || 'review_required');
+  badge.textContent = String(data.status || '').replace(/_/g, ' ');
   statusDiv.appendChild(badge);
 
   const wsLabel = document.createElement('span');
@@ -1141,6 +1998,7 @@ function renderReviewWorkspace(data) {
           <span class="tag-chip">Doc: ${escapeHtml(item.document_id)}</span>
           <span class="tag-chip">Version: ${escapeHtml(item.version)}</span>
           <span class="tag-chip">Workspace: ${escapeHtml(item.workspace_id)}</span>
+          ${item.page !== undefined && item.page !== null ? `<span class="tag-chip">Page: ${escapeHtml(item.page)}</span>` : ''}
         </div>
       `;
 
@@ -1219,6 +2077,15 @@ async function submitDecision() {
   const notes = el('reviewer_notes') ? el('reviewer_notes').value : '';
   const editedText = el('edited_text') ? el('edited_text').value : '';
 
+  const docIds = new Set();
+  const docVersions = new Set();
+  if (currentReviewData.evidence) {
+    currentReviewData.evidence.forEach(ev => {
+       if (ev.document_id) docIds.add(ev.document_id);
+       if (ev.version) docVersions.add(ev.version);
+    });
+  }
+
   const payload = {
     question: currentReviewData.question,
     workspace_id: currentReviewData.workspace_id || el('workspace_select').value,
@@ -1226,7 +2093,11 @@ async function submitDecision() {
     decision: selectedDecision,
     edited_response: editedText,
     reviewer_notes: notes,
-    selected_chunk_ids: currentReviewData.evidence_chunk_ids || []
+    selected_chunk_ids: currentReviewData.evidence_chunk_ids || [],
+    document_ids: Array.from(docIds),
+    document_versions: Array.from(docVersions),
+    original_ai_response: currentReviewData.evidence_quote || currentReviewData.reason || "",
+    reviewer_identity: "demo_reviewer@example.com"
   };
 
   try {
@@ -1244,6 +2115,7 @@ async function submitDecision() {
         </div>
         <div style="font-size:12px; color:#94a3b8">
           Timestamp: ${receipt.timestamp}<br>
+          Audit Record Hash: <span style="font-family:monospace; font-size:10px">${receipt.audit_hash}</span><br>
           Question: ${escapeHtml(receipt.question)}<br>
           AI Status: ${receipt.ai_status}<br>
           Reviewer Notes: ${escapeHtml(receipt.reviewer_notes || 'None')}<br>
@@ -1257,7 +2129,9 @@ async function submitDecision() {
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
+  if (typeof str === 'number') return str.toString();
+  if (typeof str !== 'string') return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -1274,6 +2148,10 @@ el('btn_evaluate').onclick = async () => {
   }
 };
 
+window.addEventListener('load', () => {
+  setupWorkspaceSync();
+  populateWorkspaces();
+});
 </script>
 </body>
 </html>

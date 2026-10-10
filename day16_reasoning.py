@@ -201,4 +201,4 @@ def analyze_evidence_day16(question: str, retrieved_evidence: list) -> dict:
         }
 
     # Validate and sanitize using standard schema enforcement
-    return _validate_slm_output(raw, retrieved_evidence)
+    return _validate_slm_output(raw, retrieved_evidence, question=question)

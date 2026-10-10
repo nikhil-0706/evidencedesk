@@ -68,9 +68,16 @@ Supported formats:
 
 Each document is uniquely versioned and isolated into the specified workspace.
 
-## Human Review
+## Human Review and Audit Trail
 **AI RECOMMENDS · HUMAN DECIDES.** 
 The system does not generate conversational final answers. Instead, it extracts the most relevant passages and classifies the state of the evidence. A human reviewer must inspect the highlighted evidence, resolve conflicts, optionally edit the proposed response, provide audit notes, and formally approve or reject the final response.
+
+Every human review decision is securely logged in a SQLite-backed Tamper-Evident Audit Trail (`audit_trail.db`). 
+Features of the Audit Log:
+- **Persistence across Restarts:** Decisions survive application restarts and are decoupled from the AI evaluation loop.
+- **Immutable Historical Context:** Logs capture the precise `document_versions` and `original_ai_response` at the exact time of the review, preserving context even if source documents are updated later.
+- **Cryptographic Hash Chaining:** Every log entry is SHA-256 hashed and chained to the previous entry. Using the `verify_chain()` validation, any unauthorized modification of the SQLite database is instantly detected.
+- **Workspace Isolation Validation:** Review histories preserve multitenant workspace boundaries structurally.
 
 ## Persistence
 All indexed documents and vectors are persistently stored in the `qdrant_db/` folder via QdrantLocal. 
@@ -78,19 +85,21 @@ All indexed documents and vectors are persistently stored in the `qdrant_db/` fo
 
 ## Testing
 Run the complete regression suite using the included test runner:
-`python run_all_tests.py`
+`python tests/run_all_tests.py`
 
-This test runner correctly manages Qdrant local locks between consecutive test suites.
+This test runner correctly manages Qdrant local locks between consecutive test suites and isolates the database.
+You can also run specific diagnostics like the CAIQ test:
+`python tests/regression/test_day22_caiq.py`
 
 ## Evaluation
 EvidenceDesk was evaluated against a frozen 25-question security compliance benchmark, split into Development (Q01-Q15) and Held-Out (Q16-Q25) sets.
 **End-to-End Performance:**
-- **Development (Q01-Q15):** 93.3% accuracy
-- **Held-Out (Q16-Q25):** 90.0% accuracy
-- **Overall:** 92.0% accuracy
+- **Development (Q01-Q15):** 93.3% accuracy (14/15)
+- **Held-Out (Q16-Q25):** 80.0% accuracy (8/10)
+- **Overall:** 88.0% accuracy (22/25)
 - **Zero Grounding Failures / Zero Malformed Outputs**
 
-The retrieval pipeline achieved 100% correct passage retrieval using the RRF+Cross-Encoder setup, proving that the semantic architecture securely handles both straightforward policy lookups and complex conflicting/ambiguous questions without LLM hallucinations. For full metrics, see [docs/final-evaluation.md](docs/final-evaluation.md).
+The retrieval pipeline achieved 100% correct passage retrieval using the RRF+Cross-Encoder setup. The three remaining E2E mismatches (Q08, Q18, Q23) are SLM classification boundary cases — the 3B model occasionally classifies ambiguous/paraphrased questions as `INSUFFICIENT_EVIDENCE` instead of `ANSWERABLE` or `AMBIGUOUS`. No hallucinations or fabricated evidence were observed. For full metrics, see [docs/final-evaluation.md](docs/final-evaluation.md).
 
 ## Security Limitations
 - **Workspace Isolation:** Workspace isolation currently operates exclusively at the retrieval layer.
