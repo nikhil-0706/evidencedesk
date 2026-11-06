@@ -48,6 +48,20 @@
   </script>
   
   <style>
+    /* Hide Netlify drawer toolbar & collaborative widget */
+    iframe#netlify-drawer,
+    iframe[data-netlify-drawer],
+    iframe[src*="netlify.app/feedback"],
+    iframe[src*="netlify.app/toolbar"],
+    div#netlify-drawer-root,
+    [data-netlify-drawer-root],
+    netlify-drawer {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
     /* Modern Glow & Glassmorphism styles */
     .glass-panel {
       background: rgba(17, 24, 39, 0.7);

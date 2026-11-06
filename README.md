@@ -9,10 +9,10 @@ An evidence-backed security questionnaire assistant with retrieval evaluation, p
 ## 🌐 Live Cloud Deployment
 
 EvidenceDesk is deployed live on Netlify:
-👉 **[https://evidencedeskk.netlify.app](https://evidencedeskk.netlify.app)**
+👉 **[https://evideencedesk.netlify.app](https://evideencedesk.netlify.app)**
 
-- **Landing Page**: [https://evidencedeskk.netlify.app/](https://evidencedeskk.netlify.app/)
-- **Human Review Workspace**: [https://evidencedeskk.netlify.app/app](https://evidencedeskk.netlify.app/app)
+- **Landing Page**: [https://evideencedesk.netlify.app/](https://evideencedesk.netlify.app/)
+- **Human Review Workspace**: [https://evideencedesk.netlify.app/app](https://evideencedesk.netlify.app/app)
 
 ---
 
