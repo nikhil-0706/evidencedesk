@@ -1,0 +1,4 @@
+/app         /app.html        200
+/workspace   /app.html        200
+/landing     /index.html      200
+/*           /index.html      200
