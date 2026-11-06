@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "routes": [
+    { "src": "/app", "dest": "/app.html" },
+    { "src": "/workspace", "dest": "/app.html" },
+    { "src": "/landing", "dest": "/index.html" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
+

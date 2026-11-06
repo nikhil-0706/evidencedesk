@@ -1,107 +1,147 @@
-# EvidenceDesk
+# EvidenceDesk 🛡️
 
-An evidence-backed security questionnaire assistant with retrieval evaluation and human review governance. EvidenceDesk provides a robust, deterministic, verifiable pipeline for answering compliance and security questions against ingested company policies.
+An evidence-backed security questionnaire assistant with retrieval evaluation, provenance tracking, and human review governance. EvidenceDesk provides a robust, deterministic, verifiable pipeline for answering compliance and security questionnaires against company policies.
+
+**AI RECOMMENDS · HUMAN DECIDES.**
+
+---
+
+## 🌐 Live Cloud Deployment
+
+EvidenceDesk is deployed live on Netlify:
+👉 **[https://evidencedeskk.netlify.app](https://evidencedeskk.netlify.app)**
+
+- **Landing Page**: [https://evidencedeskk.netlify.app/](https://evidencedeskk.netlify.app/)
+- **Human Review Workspace**: [https://evidencedeskk.netlify.app/app](https://evidencedeskk.netlify.app/app)
+
+---
+
+## 🛡️ Project Symbol: The Verifier Shield
+
+The official emblem of EvidenceDesk is **The Verifier Shield**:
+- **The Outer Emerald Hex-Shield**: Represents hardened enterprise policy boundaries and workspace isolation (policies never leak across company lines).
+- **The Internal Refraction Prism**: Symbolizes decomposing unstructured policy documents into discrete, verifiable facts via Hybrid RRF & Cross-Encoder ranking.
+- **The Ruby Beacon & Verification Seal**: Signifies final human sign-off—automated systems never publish compliance answers without a reviewer's cryptographic seal.
+
+---
 
 ## Problem
-Security questionnaires require reviewers to find trustworthy evidence in policy documents. Traditional RAG systems often conflate semantic similarity with factual proof, or they invent facts when data is missing. Reviewers need to see the exact provenance of the evidence, and they need a system that safely abstains or warns when evidence is conflicting or insufficient.
+Security questionnaires (SOC 2, ISO 27001, CAIQ) require reviewers to find trustworthy evidence in policy documents. Traditional RAG systems often conflate semantic similarity with factual proof, or they invent facts when data is missing. Reviewers need to see the exact provenance of the evidence, and they need a system that safely abstains or warns when evidence is conflicting or ambiguous.
 
 ## Solution
-Evidence-backed retrieval + structured reasoning + human review. EvidenceDesk enforces a strict pipeline: it retrieves evidence using hybrid search, uses a local small language model strictly as a classifier rather than a generator, and mandates human reviewer sign-off for every answer.
+Evidence-backed retrieval + structured reasoning + human review. EvidenceDesk enforces a strict pipeline: it retrieves evidence using hybrid search, uses a local small language model strictly as an evidence classifier rather than an unconstrained generator, and mandates human reviewer sign-off for every answer.
+
+---
 
 ## Architecture
+```
 User Question
-→ Workspace Filter
-→ BM25 + Dense Retrieval
-→ RRF (Reciprocal Rank Fusion)
-→ Cross-Encoder
-→ Structured SLM Reasoning (Qwen 2.5 3B)
-→ Human Review
+→ Multi-Tenant Workspace Filter
+→ BM25 (Lexical) + 384-dim Dense Retrieval (Qdrant)
+→ Reciprocal Rank Fusion (k=60)
+→ Cross-Encoder Deep Reranking (BAAI/bge-reranker-large)
+→ Contiguous Adjacent Chunk Expansion
+→ Structured SLM Evidence Reasoning (Qwen 2.5 3B via Ollama)
+→ 8-Stage Output Validator & Anti-Contamination Guard
+→ Human Review Governance (APPROVE / EDIT / REJECT)
+→ Cryptographic SHA-256 Chained Audit Trail (audit_trail.db)
+```
+
+---
 
 ## Features
-- Multi-document PDF/DOCX/TXT ingestion with structure-aware chunking
-- Provenance-aware evidence tracking (document, version, chunk, workspace)
-- Workspace isolation
-- Hybrid retrieval (BM25 + 384-dim dense embeddings)
-- Reciprocal Rank Fusion (k=60)
-- Cross-Encoder reranking (BAAI/bge-reranker-large)
-- Structured SLM decisions (ANSWERABLE, AMBIGUOUS, CONFLICTING, INSUFFICIENT_EVIDENCE)
-- Human review interface
-- Audit receipts
+- **Live Netlify Cloud Deployment**: Instant access with interactive state simulation and review playground.
+- **Multi-Document Ingestion**: PDF (page-aware), DOCX (heading hierarchy), and TXT structure-aware chunking.
+- **Multi-Tenant Workspace Isolation**: Strict document and chunk boundaries by `workspace_id`.
+- **Hybrid Retrieval**: BM25Okapi + 384-dimensional dense embeddings (`sentence-transformers/all-MiniLM-L6-v2`).
+- **Reciprocal Rank Fusion (RRF)**: Deterministic score fusion ($k=60$).
+- **Cross-Encoder Reranker**: `BAAI/bge-reranker-large` for deep query-passage semantic attention.
+- **Deterministic SLM Decisions**: Classifies evidence strictly into 4 states:
+  - `ANSWERABLE`: Direct factual evidence found with verbatim quote extraction.
+  - `AMBIGUOUS`: Underspecified question scope requiring clarification.
+  - `CONFLICTING`: Two incompatible policy claims identified for human resolution.
+  - `INSUFFICIENT_EVIDENCE`: Clean safe abstention (no hallucinations).
+- **Tamper-Evident Audit Receipts**: Cryptographic SHA-256 hash chaining on all reviewer sign-offs.
 
-## Local Setup
-1. Clone the repository and enter the directory.
-2. Create and activate a Python 3.10+ virtual environment:
-   `python -m venv .venv`
-   `.venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (Mac/Linux)
-3. Install dependencies:
-   `pip install -r requirements.txt`
-4. Make sure you have [Ollama](https://ollama.ai) installed and running locally.
-5. Pull the SLM model:
-   `ollama pull qwen2.5:3b`
+---
 
-## Configuration
-EvidenceDesk supports the following environment variables (defaults shown):
-- `QDRANT_PATH=qdrant_db`
-- `QDRANT_COLLECTION=evidencedesk`
-- `EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2`
-- `RERANKER_MODEL=BAAI/bge-reranker-large`
-- `OLLAMA_BASE_URL=http://127.0.0.1:11434`
-- `OLLAMA_MODEL=qwen2.5:3b`
-- `APP_HOST=127.0.0.1`
-- `APP_PORT=8000`
+## Evaluation Benchmark
 
-See `.env.example` for details. You do not need to configure anything for standard local usage.
+EvidenceDesk was evaluated against a frozen 25-question security compliance benchmark:
+- **Development Set (Q01–Q15)**: **93.3%** accuracy (14/15)
+- **Held-Out Set (Q16–Q25)**: **80.0%** accuracy (8/10)
+- **Overall Accuracy**: **88.0%** (22/25)
+- **Retrieval Pipeline Accuracy**: **100%** correct passage retrieval
+- **Hallucinations / Fabricated Evidence**: **0.0%**
 
-## Running
-Start the application server:
-`python evidencedesk.py`
+For complete metrics, see [docs/final-evaluation.md](docs/final-evaluation.md).
 
-Then open the application in your browser:
-`http://127.0.0.1:8000`
+---
 
-## Uploading Documents
-You can upload your own custom security policies.
-Supported formats:
-- **PDF**: Preserves page numbers and paragraph layout.
-- **DOCX**: Extracts heading and hierarchical structure metadata.
-- **TXT**: Standard blank-line splitting logic.
+## Local Setup & Engine Execution
 
-Each document is uniquely versioned and isolated into the specified workspace.
+### Prerequisites
+- Python 3.10+
+- [Ollama](https://ollama.ai) (for the local SLM)
 
-## Human Review and Audit Trail
-**AI RECOMMENDS · HUMAN DECIDES.** 
-The system does not generate conversational final answers. Instead, it extracts the most relevant passages and classifies the state of the evidence. A human reviewer must inspect the highlighted evidence, resolve conflicts, optionally edit the proposed response, provide audit notes, and formally approve or reject the final response.
+### 1. Clone & Enter Directory
+```bash
+git clone https://github.com/nikhil-0706/evidencedesk.git
+cd evidencedesk
+```
 
-Every human review decision is securely logged in a SQLite-backed Tamper-Evident Audit Trail (`audit_trail.db`). 
-Features of the Audit Log:
-- **Persistence across Restarts:** Decisions survive application restarts and are decoupled from the AI evaluation loop.
-- **Immutable Historical Context:** Logs capture the precise `document_versions` and `original_ai_response` at the exact time of the review, preserving context even if source documents are updated later.
-- **Cryptographic Hash Chaining:** Every log entry is SHA-256 hashed and chained to the previous entry. Using the `verify_chain()` validation, any unauthorized modification of the SQLite database is instantly detected.
-- **Workspace Isolation Validation:** Review histories preserve multitenant workspace boundaries structurally.
+### 2. Set Up Virtual Environment & Dependencies
+```powershell
+# Create virtual environment
+python -m venv .venv
 
-## Persistence
-All indexed documents and vectors are persistently stored in the `qdrant_db/` folder via QdrantLocal. 
-**Note:** QdrantLocal uses strict process locking. The local Qdrant storage must not be opened by multiple `QdrantLocal` clients or processes simultaneously. The recommended workflow is to run one `evidencedesk.py` server process and reuse its Qdrant client. Stop the application cleanly before replacing or resetting local storage.
+# Activate
+.venv\Scripts\activate   # On Windows
+source .venv/bin/activate # On Linux/Mac
 
-## Testing
-Run the complete regression suite using the included test runner:
-`python tests/run_all_tests.py`
+# Install clean core requirements
+pip install -r requirements.txt
+```
 
-This test runner correctly manages Qdrant local locks between consecutive test suites and isolates the database.
-You can also run specific diagnostics like the CAIQ test:
-`python tests/regression/test_day22_caiq.py`
+### 3. Start Ollama and Pull SLM
+```powershell
+# Start Ollama
+ollama serve
 
-## Evaluation
-EvidenceDesk was evaluated against a frozen 25-question security compliance benchmark, split into Development (Q01-Q15) and Held-Out (Q16-Q25) sets.
-**End-to-End Performance:**
-- **Development (Q01-Q15):** 93.3% accuracy (14/15)
-- **Held-Out (Q16-Q25):** 80.0% accuracy (8/10)
-- **Overall:** 88.0% accuracy (22/25)
-- **Zero Grounding Failures / Zero Malformed Outputs**
+# In another terminal, pull the model
+ollama pull qwen2.5:3b
+```
 
-The retrieval pipeline achieved 100% correct passage retrieval using the RRF+Cross-Encoder setup. The three remaining E2E mismatches (Q08, Q18, Q23) are SLM classification boundary cases — the 3B model occasionally classifies ambiguous/paraphrased questions as `INSUFFICIENT_EVIDENCE` instead of `ANSWERABLE` or `AMBIGUOUS`. No hallucinations or fabricated evidence were observed. For full metrics, see [docs/final-evaluation.md](docs/final-evaluation.md).
+### 4. Run EvidenceDesk
+```powershell
+python evidencedesk.py
+```
+Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser:
+- Landing Page: `http://127.0.0.1:8000/`
+- Review Workspace: `http://127.0.0.1:8000/app`
+
+---
+
+## Running Tests
+Run the complete regression suite:
+```powershell
+python tests/run_all_tests.py
+```
+
+Run smoke test evaluation:
+```powershell
+python evidencedesk.py --evaluate
+```
+
+---
+
+## Deployment Configuration
+EvidenceDesk includes pre-configured deployment manifests:
+- **Netlify**: [`netlify.toml`](netlify.toml) configured for static hosting & clean SPA routing.
+- **Vercel**: [`vercel.json`](vercel.json) configured for instant Vercel edge deployment.
+
+---
 
 ## Security Limitations
-- **Workspace Isolation:** Workspace isolation currently operates exclusively at the retrieval layer.
-- **Authentication:** There is no authentication. Production deployments should derive workspace identity from authenticated user/session/JWT/OIDC claims instead of trusting an arbitrary client-supplied `workspace_id`.
-- **Local Deployment Only:** This is a local-only baseline intended for demonstration and evaluation. Do not expose this server publicly.
+- **Local Deployment Baseline**: The local Python API is intended for internal, private evaluation.
+- **Workspace Authentication**: In production, workspace identity should be derived from authenticated JWT/OIDC claims rather than arbitrary client-supplied `workspace_id`.

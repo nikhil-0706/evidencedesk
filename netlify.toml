@@ -1,0 +1,23 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/app"
+  to = "/app.html"
+  status = 200
+
+[[redirects]]
+  from = "/workspace"
+  to = "/app.html"
+  status = 200
+
+[[redirects]]
+  from = "/landing"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

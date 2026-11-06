@@ -12,6 +12,10 @@ import re
 import unicodedata
 import sys
 import os
+from dotenv import load_dotenv
+load_dotenv()
+if "HF_HOME" not in os.environ and os.path.exists("D:\\huggingface"):
+    os.environ["HF_HOME"] = "D:\\huggingface"
 from collections import Counter
 from typing import List, Literal, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -23,8 +27,6 @@ from rank_bm25 import BM25Okapi
 from qdrant_client import QdrantClient, models
 import uuid
 
-from dotenv import load_dotenv
-load_dotenv()
 
 
 # Configuration / Environment Variables
@@ -1509,12 +1511,29 @@ textarea{min-height:100px;resize:vertical}
 <body>
 <main>
 <header>
-  <div>
-    <div class="brand-tag">EVIDENCEDESK / BUILD 0.19</div>
-    <h1>Human Review Workspace</h1>
-    <div class="subtitle">Evidence-backed security questionnaire assistant with human governance</div>
+  <div style="display:flex; align-items:center; gap:14px">
+    <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, #111827, #090d16); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; box-shadow:0 0 25px -5px rgba(255,51,102,0.35); flex-shrink:0">
+      <svg style="width:28px; height:28px" viewBox="0 0 32 32" fill="none">
+        <path d="M16 3L5 7.5V15C5 21.8 9.7 28.1 16 30C22.3 28.1 27 21.8 27 15V7.5L16 3Z" fill="#090d16" stroke="#10b981" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M16 7L9 10.5V15C9 19.5 12 23.5 16 25V7Z" fill="#ff3366" opacity="0.9"/>
+        <path d="M16 7L23 10.5V15C23 19.5 20 23.5 16 25V7Z" fill="#10b981" opacity="0.4"/>
+        <path d="M12.5 15.5L15 18L19.5 13" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="16" cy="7" r="1.5" fill="#ff3366"/>
+      </svg>
+    </div>
+    <div>
+      <div style="display:flex; align-items:center; gap:8px">
+        <span class="brand-tag">EVIDENCEDESK</span>
+        <span style="font-size:10px; font-weight:700; color:#94a3b8; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); padding:1px 6px; border-radius:999px">BUILD 0.19</span>
+      </div>
+      <h1>Human Review Workspace</h1>
+      <div class="subtitle">Evidence-backed security questionnaire assistant with human governance</div>
+    </div>
   </div>
-  <div class="gov-banner">AI RECOMMENDS · HUMAN DECIDES</div>
+  <div style="display:flex; gap:10px; align-items:center">
+    <a href="/" style="color:#94a3b8; text-decoration:none; font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px; border:1px solid #334155; background:#1e293b; transition:all 0.15s">← Landing Page</a>
+    <div class="gov-banner">AI RECOMMENDS · HUMAN DECIDES</div>
+  </div>
 </header>
 
 <div class="grid">
@@ -2157,8 +2176,25 @@ window.addEventListener('load', () => {
 </html>
 '''
 
+LANDING_PAGE_PATH = os.path.join(os.path.dirname(__file__), "landing.html")
+
 @app.get("/", response_class=HTMLResponse)
 def home():
+    if os.path.exists(LANDING_PAGE_PATH):
+        with open(LANDING_PAGE_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return PAGE
+
+@app.get("/landing", response_class=HTMLResponse)
+def landing():
+    if os.path.exists(LANDING_PAGE_PATH):
+        with open(LANDING_PAGE_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return PAGE
+
+@app.get("/app", response_class=HTMLResponse)
+@app.get("/workspace", response_class=HTMLResponse)
+def workspace_app():
     return PAGE
 
 if __name__ == "__main__":
